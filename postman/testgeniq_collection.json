@@ -1,0 +1,9 @@
+{
+  "info": {"name":"TestGenIQ Baseline API Tests","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "variable":[{"key":"baseUrl","value":"http://127.0.0.1:8000"}],
+  "item":[
+    {"name":"GET /health","request":{"method":"GET","url":"{{baseUrl}}/health"},"event":[{"listen":"test","script":{"exec":["pm.test('Status code is 200',()=>pm.response.to.have.status(200));","pm.test('Response is JSON',()=>pm.response.to.be.json);"]}}]},
+    {"name":"GET /tasks","request":{"method":"GET","url":"{{baseUrl}}/tasks"},"event":[{"listen":"test","script":{"exec":["pm.test('Status code is 200',()=>pm.response.to.have.status(200));"]}}]},
+    {"name":"POST /tasks","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"title\":\"New task\",\"description\":\"demo\",\"priority\":\"medium\"}"},"url":"{{baseUrl}}/tasks"},"event":[{"listen":"test","script":{"exec":["pm.test('Status code is 200',()=>pm.response.to.have.status(200));","pm.test('Response is JSON',()=>pm.response.to.be.json);"]}}]}
+  ]
+}

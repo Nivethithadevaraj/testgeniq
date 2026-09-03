@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "TestGenIQ AI Generated API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET /health [POSITIVE]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /tasks [POSITIVE]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /tasks [POSITIVE]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /tasks/{task_id} [POSITIVE]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks/1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUT /tasks/{task_id} [POSITIVE]",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks/1",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE /tasks/{task_id} [POSITIVE]",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks/1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /auth/register [POSITIVE]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /auth/login [POSITIVE]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET /users/{username} [POSITIVE]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/testuser"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /users/{username}/deactivate [POSITIVE]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/testuser/deactivate"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Response is JSON\", function () { pm.response.to.be.json; });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "_testgeniq": {
+    "scenario_categories": [
+      "POSITIVE",
+      "NEGATIVE",
+      "EDGE_CASE"
+    ],
+    "gemini_analysis": "Here is the comprehensive API Test Architecture analysis based strictly on the provided OpenAPI specification.\n\n---\n\n### 1. Documented API Parameters Analysis\n\n#### Required Parameters\n* **Path Parameters**:\n  * `task_id` (integer) \u2013 Required for `GET /tasks/{task_id}`, `PUT /tasks/{task_id}`, `DELETE /tasks/{task_id}`.\n  * `username` (string) \u2013 Required for `GET /users/{username}`, `POST /users/{username}/deactivate`.\n* **Request Body Required Fields**:\n  * `POST /tasks`: Body is required (`TaskCreate` schema). Required field: `title` (string).\n  * `POST /auth/register`: Body is required (`UserRegister` schema). Required fields: `username` (string), `password` (string).\n  * `POST /auth/login`: Body is required (`UserLogin` schema). Required fields: `username` (string), `password` (string).\n\n#### Optional Parameters\n* **Request Body Fields**:\n  * `POST /tasks` (`TaskCreate`):\n    * `description` (string, default: `\"\"`)\n    * `priority` (string, default: `\"medium\"`)\n  * `PUT /tasks/{task_id}` (`TaskUpdate`):\n    * `title` (string | null)\n    * `completed` (boolean | null)\n\n---\n\n### 2. Expected HTTP Status Codes & Error Structures\n\n* **`200 OK`**: Successful response (Documented across all endpoints).\n* **`400 Bad Request`**: Documented for `POST /tasks`, `PUT /tasks/{task_id}`, `POST /auth/register`, `POST /auth/login`.\n  * Documented Response Schema/Example: `{\"detail\": \"Invalid request\"}`\n* **`404 Not Found`**: Documented for `GET /tasks/{task_id}`, `PUT /tasks/{task_id}`, `DELETE /tasks/{task_id}`, `GET /users/{username}`, `POST /users/{username}/deactivate`.\n  * Documented Response Schema/Example: `{\"detail\": \"Resource not found\"}`\n* **`422 Unprocessable Entity`**: Documented validation error for operations taking path parameters or request bodies.\n\n---\n\n### 3. Authentication & Security Behavior\n* **Documented Behavior**: No security schemes, security requirements, or auth headers (e.g., Bearer token, OAuth2) are explicitly defined in the OpenAPI spec components or operations.\n* **Inferred Behavior**: Endpoint `/auth/login` accepts credentials (`username`, `password`) and returns `200`, suggesting authentication logic is handled at the application level. No HTTP status code `401` or `403` is formally documented in the specification.\n\n---\n\n### 4. Resource Dependencies\n* **Task Management Workflow**:\n  1. `POST /tasks` creates a task (yielding a `task_id`).\n  2. `GET /tasks/{task_id}`, `PUT /tasks/{task_id}`, and `DELETE /tasks/{task_id}` depend on a existing `task_id`.\n  3. `GET /tasks` lists existing tasks.\n* **User Management Workflow**:\n  1. `POST /auth/register` creates a user account.\n  2. `GET /users/{username}` and `POST /users/{username}/deactivate` depend on an existing `username`.\n  3. `POST /auth/login` validates credentials for a registered user.\n\n---\n\n### 5. Executable Test Scenarios\n\n#### A. Positive Test Scenarios\n\n1. **System Root Check**\n   * **Endpoint**: `GET /`\n   * **Input Condition**: Request sent with no query or headers.\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n2. **System Health Check**\n   * **Endpoint**: `GET /health`\n   * **Input Condition**: Request sent with no body or params.\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n3. **Get All Tasks**\n   * **Endpoint**: `GET /tasks`\n   * **Input Condition**: Request list of tasks.\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n4. **Create Task with Only Required Fields**\n   * **Endpoint**: `POST /tasks`\n   * **Input Condition**: Body `{\"title\": \"Minimal Task\"}`\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n5. **Create Task with All Documented Fields**\n   * **Endpoint**: `POST /tasks`\n   * **Input Condition**: Body `{\"title\": \"Full Task\", \"description\": \"Task description\", \"priority\": \"high\"}`\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n6. **Fetch Task by ID**\n   * **Endpoint**: `GET /tasks/{task_id}`\n   * **Input Condition**: `task_id = 1` (valid integer)\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n7. **Update Task Fields**\n   * **Endpoint**: `PUT /tasks/{task_id}`\n   * **Input Condition**: `task_id = 1`, Body `{\"title\": \"Updated Title\", \"completed\": true}`\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n8. **Delete Task**\n   * **Endpoint**: `DELETE /tasks/{task_id}`\n   * **Input Condition**: `task_id = 1`\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n9. **User Registration**\n   * **Endpoint**: `POST /auth/register`\n   * **Input Condition**: Body `{\"username\": \"testuser\", \"password\": \"securepassword\"}`\n   * **Expected Result**: HTTP `200 OK`\n   * **Assertions**: `status == 200`\n\n10. **User Login**\n    * **Endpoint**: `POST /auth/login`\n    * **Input Condition**: Body `{\"username\": \"testuser\", \"password\": \"securepassword\"}`\n    * **Expected Result**: HTTP `200 OK`\n    * **Assertions**: `status == 200`\n\n11. **Fetch User Profile**\n    * **Endpoint**: `GET /users/{username}`\n    * **Input Condition**: `username = \"testuser\"`\n    * **Expected Result**: HTTP `200 OK`\n    * **Assertions**: `status == 200`\n\n12. **Deactivate User Account**\n    * **Endpoint**: `POST /users/{username}/deactivate`\n    * **Input Condition**: `username = \"testuser\"`\n    * **Expected Result**: HTTP `200 OK`\n    * **Assertions**: `status == 200`\n\n---\n\n#### B. Negative Test Scenarios\n\n1. **Create Task Missing Required `title` Field**\n   * **Endpoint**: `POST /tasks`\n   * **Input Condition**: Body `{\"description\": \"No title task\"}`\n   * **Expected Result**: HTTP `422 Unprocessable Entity`\n   * **Assertions**: `status == 422`\n\n2. **Register User Missing Required `password`**\n   * **Endpoint**: `POST /auth/register`\n   * **Input Condition**: Body `{\"username\": \"onlyuser\"}`\n   * **Expected Result**: HTTP `422 Unprocessable Entity`\n   * **Assertions**: `status == 422`\n\n3. **Login Missing Required `username`**\n   * **Endpoint**: `POST /auth/login`\n   * **Input Condition**: Body `{\"password\": \"onlypassword\"}`\n   * **Expected Result**: HTTP `422 Unprocessable Entity`\n   * **Assertions**: `status == 422`\n\n4. **Fetch Non-Existent Task**\n   * **Endpoint**: `GET /tasks/{task_id}`\n   * **Input Condition**: `task_id = 999999`\n   * **Expected Result**: HTTP `404 Not Found`\n   * **Assertions**: `status == 404`, `response.body.detail == \"Resource not found\"`\n\n5. **Update Non-Existent Task**\n   * **Endpoint**: `PUT /tasks/{task_id}`\n   * **Input Condition**: `task_id = 999999`, Body `{\"completed\": true}`\n   * **Expected Result**: HTTP `404 Not Found`\n   * **Assertions**: `status == 404`, `response.body.detail == \"Resource not found\"`\n\n6. **Delete Non-Existent Task**\n   * **Endpoint**: `DELETE /tasks/{task_id}`\n   * **Input Condition**: `task_id = 999999`\n   * **Expected Result**: HTTP `404 Not Found`\n   * **Assertions**: `status == 404`, `response.body.detail == \"Resource not found\"`\n\n7. **Fetch Non-Existent User**\n   * **Endpoint**: `GET /users/{username}`\n   * **Input Condition**: `username = \"nonexistent_user_123\"`\n   * **Expected Result**: HTTP `404 Not Found`\n   * **Assertions**: `status == 404`, `response.body.detail == \"Resource not found\"`\n\n8. **Deactivate Non-Existent User**\n   * **Endpoint**: `POST /users/{username}/deactivate`\n   * **Input Condition**: `username = \"nonexistent_user_123\"`\n   * **Expected Result**: HTTP `404 Not Found`\n   * **Assertions**: `status == 404`, `response.body.detail == \"Resource not found\"`\n\n9. **Invalid Application Request Data (400 Bad Request)**\n   * **Endpoint**: `POST /auth/login`\n   * **Input Condition**: Body with malformed domain logic payload structure as defined by API 400 responses.\n   * **Expected Result**: HTTP `400 Bad Request`\n   * **Assertions**: `status == 400`, `response.body.detail == \"Invalid request\"`\n\n---\n\n#### C. Boundary and Edge Cases\n\n1. **Path Parameter Type Mismatch for `task_id` (String instead of Integer)**\n   * **Endpoint**: `GET /tasks/{task_id}`\n   * **Input Condition**: `task_id = \"abc\"`\n   * **Expected Result**: HTTP `422 Unprocessable Entity`\n   * **Assertions**: `status == 422`\n\n2. **Null Values for Optional `TaskUpdate` Schema Fields**\n   * **Endpoint**: `PUT /tasks/{task_id}`\n   * **Input Condition**: `task_id = 1`, Body `{\"title\": null, \"completed\": null}`\n   * **Expected Result**: HTTP `200 OK` (schema explicitly permits `anyOf: [type: string/boolean, type: null]`)\n   * **Assertions**: `status == 200`\n\n3. **Empty TaskUpdate Payload**\n   * **Endpoint**: `PUT /tasks/{task_id}`\n   * **Input Condition**: `task_id = 1`, Body `{}`\n   * **Expected Result**: HTTP `200 OK` (No required fields in `TaskUpdate`)\n   * **Assertions**: `status == 200`\n\n4. **Empty String Inputs for Task Creation**\n   * **Endpoint**: `POST /tasks`\n   * **Input Condition**: Body `{\"title\": \"\", \"description\": \"\", \"priority\": \"\"}`\n   * **Expected Result**: HTTP `200 OK` (Unless application server triggers validation error or bad request based on minimum length rules not documented in OpenAPI)\n   * **Assertions**: `status in [200, 400, 422]`",
+    "groq_generation": "## Test Suite Overview\nAll tests are written as **scenario specifications** that can be directly translated to **pytest** (using `requests`) or imported into **Postman** collections.  \nOnly the fields, endpoints, status\u2011codes and examples that exist in the supplied OpenAPI document are used.\n\n| Category | Covered End\u2011points |\n|----------|-------------------|\n| **Health / Root** | `GET /`, `GET /health` |\n| **Task CRUD** | `GET /tasks`, `POST /tasks`, `GET /tasks/{task_id}`, `PUT /tasks/{task_id}`, `DELETE /tasks/{task_id}` |\n| **Authentication** | `POST /auth/register`, `POST /auth/login` |\n| **User Management** | `GET /users/{username}`, `POST /users/{username}/deactivate` |\n\n---\n\n## 1. Root & Health\n\n| # | Test | Method | URL | Request Body | Expected HTTP | Assertions |\n|---|------|--------|-----|--------------|---------------|------------|\n| **R\u201101** | **Root \u2013 happy path** | GET | `/` | \u2013 | **200** | Response body is valid JSON (schema is empty \u2192 any JSON). |\n| **R\u201102** | **Health \u2013 happy path** | GET | `/health` | \u2013 | **200** | Response body is valid JSON. |\n| **R\u201103** | **Root \u2013 unexpected method** | POST | `/` | \u2013 | **405** *(method not allowed \u2013 not defined)* | Status code 405. |\n| **R\u201104** | **Health \u2013 unexpected method** | DELETE | `/health` | \u2013 | **405** | Status code 405. |\n\n*Note: 405 is the default behaviour of most frameworks for undefined methods; it is asserted as an error\u2011handling check.*\n\n---\n\n## 2. Tasks Collection (`/tasks`)\n\n| # | Test | Method | URL | Request Body | Expected HTTP | Assertions |\n|---|------|--------|-----|--------------|---------------|------------|\n| **T\u201101** | **List tasks \u2013 happy path** | GET | `/tasks` | \u2013 | **200** | Body is JSON array (schema empty \u2192 any JSON). |\n| **T\u201102** | **Create task \u2013 minimal valid payload** | POST | `/tasks` | `{ \"title\": \"Sample task\" }` | **200** | Response JSON contains the created task (any JSON). |\n| **T\u201103** | **Create task \u2013 all fields** | POST | `/tasks` | `{ \"title\": \"Full task\", \"description\": \"Desc\", \"priority\": \"high\" }` | **200** | 200 and response JSON present. |\n| **T\u201104** | **Create task \u2013 missing required `title`** | POST | `/tasks` | `{ \"description\": \"No title\" }` | **422** | Validation error \u2013 status 422. |\n| **T\u201105** | **Create task \u2013 empty JSON** | POST | `/tasks` | `{}` | **422** | Validation error. |\n| **T\u201106** | **Create task \u2013 extra unknown field** | POST | `/tasks` | `{ \"title\": \"Task\", \"foo\": \"bar\" }` | **400** or **422** (implementation dependent) | Assert status is **400** (Bad request) **or** **422**. |\n| **T\u201107** | **Create task \u2013 title as empty string** | POST | `/tasks` | `{ \"title\": \"\" }` | **200** (allowed \u2013 schema only requires string) | Verify 200; optional business\u2011rule check can be added later. |\n| **T\u201108** | **Create task \u2013 title exceeds typical length (boundary)** | POST | `/tasks` | `{ \"title\": \"A\".repeat(1024) }` | **200** | Verify API accepts long titles (boundary test). |\n\n---\n\n## 3. Single Task (`/tasks/{task_id}`)\n\n### 3.1 GET\n\n| # | Test | Method | URL | Expected HTTP | Assertions |\n|---|------|--------|-----|---------------|------------|\n| **GT\u201101** | Get existing task (use ID returned from **T\u201102**) | GET | `/tasks/1` | **200** | JSON body present. |\n| **GT\u201102** | Get non\u2011existent task | GET | `/tasks/99999` | **404** | Body contains `{ \"detail\": \"Resource not found\" }`. |\n| **GT\u201103** | Get task with invalid ID type (string) | GET | `/tasks/abc` | **422** | Validation error. |\n| **GT\u201104** | Get task with negative ID | GET | `/tasks/-1` | **422** (or **404** depending on impl) | Assert either 422 validation or 404 not found. |\n\n### 3.2 PUT (Update)\n\n| # | Test | Method | URL | Request Body | Expected HTTP | Assertions |\n|---|------|--------|-----|--------------|---------------|------------|\n| **UT\u201101** | Update title only (valid) | PUT | `/tasks/1` | `{ \"title\": \"Updated title\" }` | **200** | Response JSON reflects update (if returned). |\n| **UT\u201102** | Mark task completed (valid) | PUT | `/tasks/1` | `{ \"completed\": true }` | **200** | 200 and JSON present. |\n| **UT\u201103** | Update with both fields (including null) | PUT | `/tasks/1` | `{ \"title\": null, \"completed\": null }` | **200** | API accepts nulls per schema. |\n| **UT\u201104** | Update non\u2011existent task | PUT | `/tasks/99999` | `{ \"title\": \"X\" }` | **404** | Body `{ \"detail\": \"Resource not found\" }`. |\n| **UT\u201105** | Update with invalid payload (wrong type) | PUT | `/tasks/1` | `{ \"completed\": \"yes\" }` | **422** | Validation error. |\n| **UT\u201106** | Update with empty body | PUT | `/tasks/1` | `{}` (or no body) | **200** (allowed \u2013 all fields optional) | Verify 200; no change. |\n| **UT\u201107** | Update with extra field | PUT | `/tasks/1` | `{ \"title\": \"X\", \"extra\": 123 }` | **400** or **422** | Assert 400/422. |\n\n### 3.3 DELETE\n\n| # | Test | Method | URL | Expected HTTP | Assertions |\n|---|------|--------|-----|---------------|------------|\n| **DT\u201101** | Delete existing task (created in **T\u201102**) | DELETE | `/tasks/1` | **200** | JSON body present (empty schema). |\n| **DT\u201102** | Delete already\u2011deleted / non\u2011existent task | DELETE | `/tasks/1` | **404** | `{ \"detail\": \"Resource not found\" }`. |\n| **DT\u201103** | Delete with invalid ID type | DELETE | `/tasks/xyz` | **422** | Validation error. |\n| **DT\u201104** | Delete with negative ID | DELETE | `/tasks/-5` | **422** (or 404) | Assert 422/404. |\n\n---\n\n## 4. Authentication (`/auth/register` & `/auth/login`)\n\n### 4.1 Register\n\n| # | Test | Method | URL | Request Body | Expected HTTP | Assertions |\n|---|------|--------|-----|--------------|---------------|------------|\n| **RGT\u201101** | Register new user (deterministic) | POST | `/auth/register` | `{ \"username\": \"testuser\", \"password\": \"Secret123!\" }` | **200** | JSON response present. |\n| **RGT\u201102** | Register with missing password | POST | `/auth/register` | `{ \"username\": \"testuser2\" }` | **422** | Validation error. |\n| **RGT\u201103** | Register with missing username | POST | `/auth/register` | `{ \"password\": \"pwd\" }` | **422** | Validation error. |\n| **RGT\u201104** | Register with empty JSON | POST | `/auth/register` | `{}` | **422** | Validation error. |\n| **RGT\u201105** | Register with extra field | POST | `/auth/register` | `{ \"username\": \"u\", \"password\": \"p\", \"email\": \"x@x.com\" }` | **400** or **422** | Assert 400/422. |\n| **RGT\u201106** | Register duplicate username (assuming idempotent) | POST | `/auth/register` | `{ \"username\": \"testuser\", \"password\": \"AnotherPwd\" }` | **400** (or 422) | Expect error indicating duplicate (implementation\u2011specific). |\n\n### 4.2 Login\n\n| # | Test | Method | URL | Request Body | Expected HTTP | Assertions |\n|---|------|--------|-----|--------------|---------------|------------|\n| **LGT\u201101** | Login with correct credentials (created in **RGT\u201101**) | POST | `/auth/login` | `{ \"username\": \"testuser\", \"password\": \"Secret123!\" }` | **200** | JSON response (e.g., token) present. |\n| **LGT\u201102** | Login with wrong password | POST | `/auth/login` | `{ \"username\": \"testuser\", \"password\": \"WrongPwd\" }` | **400** or **422** (depends on implementation) | Assert non\u2011200, error body if provided. |\n| **LGT\u201103** | Login with non\u2011existent user | POST | `/auth/login` | `{ \"username\": \"nosuch\", \"password\": \"any\" }` | **400** or **422** | Non\u2011200. |\n| **LGT\u201104** | Login missing password | POST | `/auth/login` | `{ \"username\": \"testuser\" }` | **422** | Validation error. |\n| **LGT\u201105** | Login missing username | POST | `/auth/login` | `{ \"password\": \"Secret123!\" }` | **422** | Validation error. |\n| **LGT\u201106** | Login with extra field | POST | `/auth/login` | `{ \"username\": \"testuser\", \"password\": \"Secret123!\", \"foo\": \"bar\" }` | **400** or **422** | Assert error. |\n\n---\n\n## 5. User End\u2011points (`/users/{username}` & `/users/{username}/deactivate`)\n\n### 5.1 Get User\n\n| # | Test | Method | URL | Expected HTTP | Assertions |\n|---|------|--------|-----|---------------|------------|\n| **GU\u201101** | Get existing user (registered in **RGT\u201101**) | GET | `/users/testuser` | **200** | JSON body present. |\n| **GU\u201102** | Get non\u2011existent user | GET | `/users/unknown123` | **404** | `{ \"detail\": \"Resource not found\" }`. |\n| **GU\u201103** | Get user with invalid username type (numeric) | GET | `/users/12345` | **200** (string path accepts numbers) \u2013 treat as normal string, but still valid. No error expected. |\n| **GU\u201104** | Get user with empty username | GET | `/users/` *(invalid path \u2013 will not match)* | **404** (framework) | Path not matched \u2192 404. |\n\n### 5.2 Deactivate User\n\n| # | Test | Method | URL | Expected HTTP | Assertions |\n|---|------|--------|-----|---------------|------------|\n| **DU\u201101** | Deactivate existing user | POST | `/users/testuser/deactivate` | **200** | JSON response present. |\n| **DU\u201102** | Deactivate already deactivated / non\u2011existent user | POST | `/users/unknown123/deactivate` | **404** | `{ \"detail\": \"Resource not found\" }`. |\n| **DU\u201103** | Deactivate with invalid username (contains spaces) | POST | `/users/invalid%20name/deactivate` | **404** or **422** | Assert error status. |\n| **DU\u201104** | Deactivate with extra query param (should be ignored) | POST | `/users/testuser/deactivate?force=true` | **200** | Still 200 \u2013 extra params ignored."
+  }
+}

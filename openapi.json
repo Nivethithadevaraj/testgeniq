@@ -1,0 +1,525 @@
+{
+    "openapi":  "3.1.0",
+    "info":  {
+                 "title":  "TestGenIQ Target API",
+                 "version":  "1.0.0"
+             },
+    "paths":  {
+                  "/":  {
+                            "get":  {
+                                        "summary":  "Root",
+                                        "operationId":  "root__get",
+                                        "responses":  {
+                                                          "200":  {
+                                                                      "description":  "Successful Response",
+                                                                      "content":  {
+                                                                                      "application/json":  {
+                                                                                                               "schema":  {
+
+                                                                                                                          }
+                                                                                                           }
+                                                                                  }
+                                                                  }
+                                                      }
+                                    }
+                        },
+                  "/health":  {
+                                  "get":  {
+                                              "summary":  "Health",
+                                              "operationId":  "health_health_get",
+                                              "responses":  {
+                                                                "200":  {
+                                                                            "description":  "Successful Response",
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        }
+                                                                        }
+                                                            }
+                                          }
+                              },
+                  "/tasks":  {
+                                 "get":  {
+                                             "summary":  "Api Get Tasks",
+                                             "operationId":  "api_get_tasks_tasks_get",
+                                             "responses":  {
+                                                               "200":  {
+                                                                           "description":  "Successful Response",
+                                                                           "content":  {
+                                                                                           "application/json":  {
+                                                                                                                    "schema":  {
+
+                                                                                                                               }
+                                                                                                                }
+                                                                                       }
+                                                                       }
+                                                           }
+                                         },
+                                 "post":  {
+                                              "summary":  "Api Create Task",
+                                              "operationId":  "api_create_task_tasks_post",
+                                              "requestBody":  {
+                                                                  "content":  {
+                                                                                  "application/json":  {
+                                                                                                           "schema":  {
+                                                                                                                          "$ref":  "#/components/schemas/TaskCreate"
+                                                                                                                      }
+                                                                                                       }
+                                                                              },
+                                                                  "required":  true
+                                                              },
+                                              "responses":  {
+                                                                "200":  {
+                                                                            "description":  "Successful Response",
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        }
+                                                                        },
+                                                                "400":  {
+                                                                            "description":  "Bad request",
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "example":  {
+                                                                                                                                     "detail":  "Invalid request"
+                                                                                                                                 }
+                                                                                                                 }
+                                                                                        }
+                                                                        },
+                                                                "422":  {
+                                                                            "description":  "Validation error"
+                                                                        }
+                                                            }
+                                          }
+                             },
+                  "/tasks/{task_id}":  {
+                                           "get":  {
+                                                       "summary":  "Api Get Task",
+                                                       "operationId":  "api_get_task_tasks__task_id__get",
+                                                       "parameters":  [
+                                                                          {
+                                                                              "name":  "task_id",
+                                                                              "in":  "path",
+                                                                              "required":  true,
+                                                                              "schema":  {
+                                                                                             "type":  "integer",
+                                                                                             "description":  "Task identifier",
+                                                                                             "examples":  [
+                                                                                                              1
+                                                                                                          ],
+                                                                                             "title":  "Task Id"
+                                                                                         },
+                                                                              "description":  "Task identifier"
+                                                                          }
+                                                                      ],
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Successful Response",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "schema":  {
+
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 },
+                                                                         "404":  {
+                                                                                     "description":  "Resource not found",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "example":  {
+                                                                                                                                              "detail":  "Resource not found"
+                                                                                                                                          }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 },
+                                                                         "422":  {
+                                                                                     "description":  "Validation error"
+                                                                                 }
+                                                                     }
+                                                   },
+                                           "put":  {
+                                                       "summary":  "Api Update Task",
+                                                       "operationId":  "api_update_task_tasks__task_id__put",
+                                                       "parameters":  [
+                                                                          {
+                                                                              "name":  "task_id",
+                                                                              "in":  "path",
+                                                                              "required":  true,
+                                                                              "schema":  {
+                                                                                             "type":  "integer",
+                                                                                             "description":  "Task identifier",
+                                                                                             "examples":  [
+                                                                                                              1
+                                                                                                          ],
+                                                                                             "title":  "Task Id"
+                                                                                         },
+                                                                              "description":  "Task identifier"
+                                                                          }
+                                                                      ],
+                                                       "requestBody":  {
+                                                                           "content":  {
+                                                                                           "application/json":  {
+                                                                                                                    "schema":  {
+                                                                                                                                   "$ref":  "#/components/schemas/TaskUpdate"
+                                                                                                                               }
+                                                                                                                }
+                                                                                       }
+                                                                       },
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Successful Response",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "schema":  {
+
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 },
+                                                                         "400":  {
+                                                                                     "description":  "Bad request",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "example":  {
+                                                                                                                                              "detail":  "Invalid request"
+                                                                                                                                          }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 },
+                                                                         "404":  {
+                                                                                     "description":  "Resource not found",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "example":  {
+                                                                                                                                              "detail":  "Resource not found"
+                                                                                                                                          }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 },
+                                                                         "422":  {
+                                                                                     "description":  "Validation error"
+                                                                                 }
+                                                                     }
+                                                   },
+                                           "delete":  {
+                                                          "summary":  "Api Delete Task",
+                                                          "operationId":  "api_delete_task_tasks__task_id__delete",
+                                                          "parameters":  [
+                                                                             {
+                                                                                 "name":  "task_id",
+                                                                                 "in":  "path",
+                                                                                 "required":  true,
+                                                                                 "schema":  {
+                                                                                                "type":  "integer",
+                                                                                                "description":  "Task identifier",
+                                                                                                "examples":  [
+                                                                                                                 1
+                                                                                                             ],
+                                                                                                "title":  "Task Id"
+                                                                                            },
+                                                                                 "description":  "Task identifier"
+                                                                             }
+                                                                         ],
+                                                          "responses":  {
+                                                                            "200":  {
+                                                                                        "description":  "Successful Response",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    },
+                                                                            "404":  {
+                                                                                        "description":  "Resource not found",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "example":  {
+                                                                                                                                                 "detail":  "Resource not found"
+                                                                                                                                             }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    },
+                                                                            "422":  {
+                                                                                        "description":  "Validation error"
+                                                                                    }
+                                                                        }
+                                                      }
+                                       },
+                  "/auth/register":  {
+                                         "post":  {
+                                                      "summary":  "Api Register",
+                                                      "operationId":  "api_register_auth_register_post",
+                                                      "requestBody":  {
+                                                                          "content":  {
+                                                                                          "application/json":  {
+                                                                                                                   "schema":  {
+                                                                                                                                  "$ref":  "#/components/schemas/UserRegister"
+                                                                                                                              }
+                                                                                                               }
+                                                                                      },
+                                                                          "required":  true
+                                                                      },
+                                                      "responses":  {
+                                                                        "200":  {
+                                                                                    "description":  "Successful Response",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                }
+                                                                                },
+                                                                        "400":  {
+                                                                                    "description":  "Bad request",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "example":  {
+                                                                                                                                             "detail":  "Invalid request"
+                                                                                                                                         }
+                                                                                                                         }
+                                                                                                }
+                                                                                },
+                                                                        "422":  {
+                                                                                    "description":  "Validation error"
+                                                                                }
+                                                                    }
+                                                  }
+                                     },
+                  "/auth/login":  {
+                                      "post":  {
+                                                   "summary":  "Api Login",
+                                                   "operationId":  "api_login_auth_login_post",
+                                                   "requestBody":  {
+                                                                       "content":  {
+                                                                                       "application/json":  {
+                                                                                                                "schema":  {
+                                                                                                                               "$ref":  "#/components/schemas/UserLogin"
+                                                                                                                           }
+                                                                                                            }
+                                                                                   },
+                                                                       "required":  true
+                                                                   },
+                                                   "responses":  {
+                                                                     "200":  {
+                                                                                 "description":  "Successful Response",
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "schema":  {
+
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                             }
+                                                                             },
+                                                                     "400":  {
+                                                                                 "description":  "Bad request",
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "example":  {
+                                                                                                                                          "detail":  "Invalid request"
+                                                                                                                                      }
+                                                                                                                      }
+                                                                                             }
+                                                                             },
+                                                                     "422":  {
+                                                                                 "description":  "Validation error"
+                                                                             }
+                                                                 }
+                                               }
+                                  },
+                  "/users/{username}":  {
+                                            "get":  {
+                                                        "summary":  "Api Get User",
+                                                        "operationId":  "api_get_user_users__username__get",
+                                                        "parameters":  [
+                                                                           {
+                                                                               "name":  "username",
+                                                                               "in":  "path",
+                                                                               "required":  true,
+                                                                               "schema":  {
+                                                                                              "type":  "string",
+                                                                                              "description":  "Username",
+                                                                                              "examples":  [
+                                                                                                               "testuser"
+                                                                                                           ],
+                                                                                              "title":  "Username"
+                                                                                          },
+                                                                               "description":  "Username"
+                                                                           }
+                                                                       ],
+                                                        "responses":  {
+                                                                          "200":  {
+                                                                                      "description":  "Successful Response",
+                                                                                      "content":  {
+                                                                                                      "application/json":  {
+                                                                                                                               "schema":  {
+
+                                                                                                                                          }
+                                                                                                                           }
+                                                                                                  }
+                                                                                  },
+                                                                          "404":  {
+                                                                                      "description":  "Resource not found",
+                                                                                      "content":  {
+                                                                                                      "application/json":  {
+                                                                                                                               "example":  {
+                                                                                                                                               "detail":  "Resource not found"
+                                                                                                                                           }
+                                                                                                                           }
+                                                                                                  }
+                                                                                  },
+                                                                          "422":  {
+                                                                                      "description":  "Validation error"
+                                                                                  }
+                                                                      }
+                                                    }
+                                        },
+                  "/users/{username}/deactivate":  {
+                                                       "post":  {
+                                                                    "summary":  "Api Deactivate User",
+                                                                    "operationId":  "api_deactivate_user_users__username__deactivate_post",
+                                                                    "parameters":  [
+                                                                                       {
+                                                                                           "name":  "username",
+                                                                                           "in":  "path",
+                                                                                           "required":  true,
+                                                                                           "schema":  {
+                                                                                                          "type":  "string",
+                                                                                                          "description":  "Username",
+                                                                                                          "examples":  [
+                                                                                                                           "testuser"
+                                                                                                                       ],
+                                                                                                          "title":  "Username"
+                                                                                                      },
+                                                                                           "description":  "Username"
+                                                                                       }
+                                                                                   ],
+                                                                    "responses":  {
+                                                                                      "200":  {
+                                                                                                  "description":  "Successful Response",
+                                                                                                  "content":  {
+                                                                                                                  "application/json":  {
+                                                                                                                                           "schema":  {
+
+                                                                                                                                                      }
+                                                                                                                                       }
+                                                                                                              }
+                                                                                              },
+                                                                                      "404":  {
+                                                                                                  "description":  "Resource not found",
+                                                                                                  "content":  {
+                                                                                                                  "application/json":  {
+                                                                                                                                           "example":  {
+                                                                                                                                                           "detail":  "Resource not found"
+                                                                                                                                                       }
+                                                                                                                                       }
+                                                                                                              }
+                                                                                              },
+                                                                                      "422":  {
+                                                                                                  "description":  "Validation error"
+                                                                                              }
+                                                                                  }
+                                                                }
+                                                   }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "TaskCreate":  {
+                                                          "properties":  {
+                                                                             "title":  {
+                                                                                           "type":  "string",
+                                                                                           "title":  "Title"
+                                                                                       },
+                                                                             "description":  {
+                                                                                                 "type":  "string",
+                                                                                                 "title":  "Description",
+                                                                                                 "default":  ""
+                                                                                             },
+                                                                             "priority":  {
+                                                                                              "type":  "string",
+                                                                                              "title":  "Priority",
+                                                                                              "default":  "medium"
+                                                                                          }
+                                                                         },
+                                                          "type":  "object",
+                                                          "required":  [
+                                                                           "title"
+                                                                       ],
+                                                          "title":  "TaskCreate"
+                                                      },
+                                       "TaskUpdate":  {
+                                                          "properties":  {
+                                                                             "title":  {
+                                                                                           "anyOf":  [
+                                                                                                         {
+                                                                                                             "type":  "string"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "type":  "null"
+                                                                                                         }
+                                                                                                     ],
+                                                                                           "title":  "Title"
+                                                                                       },
+                                                                             "completed":  {
+                                                                                               "anyOf":  [
+                                                                                                             {
+                                                                                                                 "type":  "boolean"
+                                                                                                             },
+                                                                                                             {
+                                                                                                                 "type":  "null"
+                                                                                                             }
+                                                                                                         ],
+                                                                                               "title":  "Completed"
+                                                                                           }
+                                                                         },
+                                                          "type":  "object",
+                                                          "title":  "TaskUpdate"
+                                                      },
+                                       "UserLogin":  {
+                                                         "properties":  {
+                                                                            "username":  {
+                                                                                             "type":  "string",
+                                                                                             "title":  "Username"
+                                                                                         },
+                                                                            "password":  {
+                                                                                             "type":  "string",
+                                                                                             "title":  "Password"
+                                                                                         }
+                                                                        },
+                                                         "type":  "object",
+                                                         "required":  [
+                                                                          "username",
+                                                                          "password"
+                                                                      ],
+                                                         "title":  "UserLogin"
+                                                     },
+                                       "UserRegister":  {
+                                                            "properties":  {
+                                                                               "username":  {
+                                                                                                "type":  "string",
+                                                                                                "title":  "Username"
+                                                                                            },
+                                                                               "password":  {
+                                                                                                "type":  "string",
+                                                                                                "title":  "Password"
+                                                                                            }
+                                                                           },
+                                                            "type":  "object",
+                                                            "required":  [
+                                                                             "username",
+                                                                             "password"
+                                                                         ],
+                                                            "title":  "UserRegister"
+                                                        }
+                                   }
+                   }
+}
