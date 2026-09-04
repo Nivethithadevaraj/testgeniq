@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -8,480 +9,356 @@ load_dotenv()
 
 
 # ============================================================
-# HELPERS
+# CONFIGURATION
 # ============================================================
 
-def _langchain_available():
-    try:
-        import langchain_core
-        return True
-    except Exception:
-        return False
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+GEMINI_MODEL = os.getenv(
+    "GEMINI_MODEL",
+    "gemini-3.6-flash",
+)
+
+GROQ_MODEL = os.getenv(
+    "GROQ_MODEL",
+    "openai/gpt-oss-120b",
+)
 
 
-def _safe_text(content) -> str:
+# ============================================================
+# GEMINI ANALYSIS
+# ============================================================
+
+def analyze_with_gemini(
+    prompt: str,
+) -> str:
     """
-    Convert a LangChain response into plain text.
+    Use Gemini to analyze the supplied source code,
+    OpenAPI contract and requested test scenarios.
+
+    Gemini is used for analysis/reasoning only.
     """
 
-    if content is None:
-        return ""
+    if not GEMINI_API_KEY:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not configured."
+        )
 
-    if isinstance(content, str):
-        return content
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-    if isinstance(content, list):
-        parts = []
+    model = ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GEMINI_API_KEY,
+        temperature=0,
+    )
 
-        for item in content:
-            if isinstance(item, dict):
-                parts.append(
-                    str(item.get("text", item))
-                )
-            else:
-                parts.append(str(item))
+    response = model.invoke(
+        f"""
+You are TestGenIQ's API test-analysis engine.
 
-        return "\n".join(parts)
+Analyze the following source material.
+
+Your analysis MUST:
+
+1. Identify the actual public functions.
+2. Identify their exact parameters.
+3. Identify valid inputs.
+4. Identify invalid inputs.
+5. Identify actual exceptions.
+6. Identify actual return values.
+7. Identify edge cases supported by the implementation.
+8. Cross-check the OpenAPI contract.
+9. Never invent behavior.
+
+SOURCE MATERIAL
+===============
+
+{prompt}
+
+Return a concise structured analysis for a second AI
+model that will generate pytest code.
+"""
+    )
+
+    content = getattr(
+        response,
+        "content",
+        str(response),
+    )
 
     return str(content)
 
 
-def _invoke(model, system: str, human: str) -> str:
+# ============================================================
+# GROQ CODE GENERATION
+# ============================================================
+
+def generate_with_groq(
+    prompt: str,
+) -> str:
     """
-    Invoke a LangChain chat model.
+    Use Groq through LangChain to generate pytest code.
     """
 
-    from langchain_core.messages import (
-        SystemMessage,
-        HumanMessage,
+    if not GROQ_API_KEY:
+        raise RuntimeError(
+            "GROQ_API_KEY is not configured."
+        )
+
+    from langchain_groq import ChatGroq
+
+    model = ChatGroq(
+        model=GROQ_MODEL,
+        groq_api_key=GROQ_API_KEY,
+        temperature=0,
     )
 
     response = model.invoke(
-        [
-            SystemMessage(content=system),
-            HumanMessage(content=human),
-        ]
-    )
+        f"""
+You are TestGenIQ's production pytest code generator.
 
-    return _safe_text(response.content)
+Generate executable Python pytest source.
 
+STRICT REQUIREMENTS:
 
-# ============================================================
-# GEMINI
-# ============================================================
-
-def _build_gemini():
-    from langchain_google_genai import (
-        ChatGoogleGenerativeAI,
-    )
-
-    return ChatGoogleGenerativeAI(
-        model=os.getenv(
-            "GEMINI_MODEL",
-            "gemini-3.6-flash",
-        ),
-        google_api_key=os.getenv(
-            "GEMINI_API_KEY"
-        ),
-        temperature=0.1,
-    )
-
-
-# ============================================================
-# GROQ
-# ============================================================
-
-def _build_groq():
-    from langchain_groq import ChatGroq
-
-    return ChatGroq(
-        model=os.getenv(
-            "GROQ_MODEL",
-            "openai/gpt-oss-120b",
-        ),
-        groq_api_key=os.getenv(
-            "GROQ_API_KEY"
-        ),
-        temperature=0.1,
-    )
-
-
-# ============================================================
-# GEMINI - OPENAPI ANALYSIS
-# ============================================================
-
-def analyze_with_gemini(context: str) -> str:
-    """
-    Analyze an OpenAPI/API context and identify:
-
-    - positive scenarios
-    - negative scenarios
-    - boundary cases
-    - expected status codes
-    - assertions
-    - dependencies
-    """
-
-    if not os.getenv("GEMINI_API_KEY"):
-        return (
-            "AI analysis unavailable; "
-            "deterministic scenario planner used."
-        )
-
-    if not _langchain_available():
-        return (
-            "LangChain unavailable; "
-            "deterministic scenario planner used."
-        )
-
-    system = """
-You are the TestGenIQ API Test Architect.
-
-Analyze the supplied OpenAPI specification and source context.
-
-Identify:
-
-1. Positive test scenarios
-2. Negative test scenarios
-3. Boundary and edge cases
-4. Required parameters
-5. Optional parameters
-6. Expected HTTP status codes
-7. Response assertions
-8. Validation behavior
-9. Resource dependencies
-10. Authentication behavior when applicable
-
-STRICT RULES:
-
-- Use ONLY information present in the supplied context.
-- Never invent endpoints.
-- Never invent request fields.
-- Never invent response fields.
-- Never invent undocumented status codes.
-- Never invent authentication mechanisms.
-- Clearly distinguish documented behavior from inferred scenarios.
-- Prefer deterministic, executable test ideas.
-- Include endpoint, method, input condition,
-  expected result, and assertions.
-"""
-
-    try:
-        return _invoke(
-            _build_gemini(),
-            system,
-            context,
-        )
-
-    except Exception as exc:
-        return (
-            "Gemini analysis failed gracefully. "
-            f"Reason: {type(exc).__name__}. "
-            "Deterministic scenario planner used."
-        )
-
-
-# ============================================================
-# GROQ - TEST GENERATION
-# ============================================================
-
-def generate_with_groq(context: str) -> str:
-    """
-    Generate executable API test scenarios.
-    """
-
-    if not os.getenv("GROQ_API_KEY"):
-        return (
-            "AI generation unavailable; "
-            "deterministic generator used."
-        )
-
-    if not _langchain_available():
-        return (
-            "LangChain unavailable; "
-            "deterministic generator used."
-        )
-
-    system = """
-You are TestGenIQ's executable API test generation engine.
-
-Generate practical API test scenarios using ONLY
-the supplied context.
-
-Cover:
-
-- Positive tests
-- Negative tests
-- Validation tests
-- Boundary tests
-- Error handling
-- HTTP status assertions
-- Response assertions
-
-STRICT RULES:
-
+- Use ONLY functions that appear in the supplied source.
+- Use ONLY parameters that appear in the supplied signatures.
+- Use ONLY exceptions actually raised by the source.
+- Use ONLY return fields actually produced by the source.
 - Do not invent endpoints.
-- Do not invent request fields.
-- Do not invent response fields.
-- Do not invent undocumented status codes.
-- Do not assume authentication if it is not documented.
-- Use the supplied OpenAPI/source context as truth.
-- Prefer deterministic test data.
-- Tests must be suitable for pytest or Postman.
-- Keep the output concise and structured.
+- Do not invent fields.
+- Do not invent business rules.
+- Include positive scenarios.
+- Include negative scenarios.
+- Include edge scenarios.
+- Use pytest fixtures where in-memory state exists.
+- Import only real functions.
+- Do not use Markdown fences.
+- Return Python source only.
+
+{prompt}
+"""
+    )
+
+    content = getattr(
+        response,
+        "content",
+        str(response),
+    )
+
+    return str(content)
+
+
+# ============================================================
+# GENERATED CODE CLEANUP
+# ============================================================
+
+def _clean_generated_code(
+    code: str,
+) -> str:
+
+    code = code.strip()
+
+    code = re.sub(
+        r"^```(?:python)?\s*",
+        "",
+        code,
+        flags=re.IGNORECASE,
+    )
+
+    code = re.sub(
+        r"\s*```$",
+        "",
+        code,
+    )
+
+    return code.strip()
+
+
+# ============================================================
+# TEST GENERATION PIPELINE
+# ============================================================
+
+def generate_test_code(
+    prompt: str,
+    module_name: str = "api",
+) -> str:
+    """
+    Generate executable pytest code using:
+
+        Gemini -> analysis
+        Groq   -> code generation
+    """
+
+    analysis = analyze_with_gemini(
+        prompt
+    )
+
+    generation_prompt = f"""
+TARGET MODULE
+=============
+
+{module_name}
+
+GEMINI SOURCE ANALYSIS
+======================
+
+{analysis}
+
+ORIGINAL SOURCE / REQUIREMENTS
+==============================
+
+{prompt}
+
+Generate executable pytest code now.
 """
 
-    try:
-        return _invoke(
-            _build_groq(),
-            system,
-            context,
-        )
+    generated = generate_with_groq(
+        generation_prompt
+    )
 
-    except Exception as exc:
-        return (
-            "Groq generation failed gracefully. "
-            f"Reason: {type(exc).__name__}. "
-            "Deterministic generator used."
-        )
-
-
-# ============================================================
-# FAILURE CLASSIFICATION
-# ============================================================
-
-def classify_failure(failure_text: str) -> str:
-    """
-    Deterministically classify a failure.
-
-    This is used before AI RCA so that the report still
-    contains useful information if an AI provider is unavailable.
-    """
-
-    text = (failure_text or "").lower()
-
-    if "timeout" in text:
-        return "TIMEOUT / AVAILABILITY"
-
-    if "connection refused" in text:
-        return "SERVICE UNAVAILABLE"
-
-    if "connection error" in text:
-        return "NETWORK / SERVICE ERROR"
-
-    if "404" in text or "not found" in text:
-        return "RESOURCE / STATE MISMATCH"
-
-    if "400" in text or "bad request" in text:
-        return "REQUEST VALIDATION"
-
-    if "401" in text or "unauthorized" in text:
-        return "AUTHENTICATION"
-
-    if "403" in text or "forbidden" in text:
-        return "AUTHORIZATION"
-
-    if "422" in text or "validation" in text:
-        return "SCHEMA / VALIDATION"
-
-    if "500" in text or "internal server error" in text:
-        return "SERVER ERROR"
-
-    if "allow header" in text:
-        return "HTTP HEADER / CONTRACT"
-
-    if "schema" in text:
-        return "CONTRACT / RESPONSE SCHEMA"
-
-    if "status code" in text:
-        return "CONTRACT / STATUS CODE"
-
-    if "dredd" in text:
-        return "DREDD CONTRACT VALIDATION"
-
-    if "schemathesis" in text:
-        return "SCHEMATHESIS CONTRACT VALIDATION"
-
-    return "UNKNOWN / REQUIRES INVESTIGATION"
-
-
-# ============================================================
-# DETERMINISTIC RCA
-# ============================================================
-
-def _deterministic_rca(failure_text: str) -> str:
-    """
-    Produce RCA without requiring an AI provider.
-    """
-
-    category = classify_failure(failure_text)
-
-    if category == "RESOURCE / STATE MISMATCH":
-
-        explanation = (
-            "The request reached the target API, but the "
-            "expected resource was not present in the current "
-            "application state."
-        )
-
-        action = (
-            "Seed the required resource before the dependent "
-            "test, or explicitly model the resource dependency."
-        )
-
-    elif category == "CONTRACT / STATUS CODE":
-
-        explanation = (
-            "The actual HTTP status returned by the API does "
-            "not match the status documented or expected by "
-            "the contract test."
-        )
-
-        action = (
-            "Compare the OpenAPI response definitions with "
-            "actual endpoint behavior and correct the API "
-            "contract or implementation."
-        )
-
-    elif category == "SCHEMA / VALIDATION":
-
-        explanation = (
-            "The generated request or API response did not "
-            "satisfy the schema or validation constraints."
-        )
-
-        action = (
-            "Compare the generated payload and API schema "
-            "field by field and correct the generator, "
-            "schema, or endpoint validation."
-        )
-
-    elif category == "HTTP HEADER / CONTRACT":
-
-        explanation = (
-            "The API response headers do not match the "
-            "headers required by the contract."
-        )
-
-        action = (
-            "Review the documented response headers and "
-            "verify the API response."
-        )
-
-    elif category == "SERVICE UNAVAILABLE":
-
-        explanation = (
-            "The test could not establish a connection "
-            "to the target service."
-        )
-
-        action = (
-            "Verify that the FastAPI service is running "
-            "and that the configured target URL is reachable."
-        )
-
-    elif category == "TIMEOUT / AVAILABILITY":
-
-        explanation = (
-            "The request exceeded the configured execution "
-            "timeout."
-        )
-
-        action = (
-            "Check service responsiveness, dependency latency, "
-            "and timeout configuration."
-        )
-
-    else:
-
-        explanation = (
-            "The recorded execution output indicates a "
-            "failure requiring comparison of expected and "
-            "actual behavior."
-        )
-
-        action = (
-            "Inspect the complete tool log and reproduce "
-            "the failing scenario independently."
-        )
-
-    return (
-        f"Failure category: {category}\n\n"
-        f"Root cause assessment: {explanation}\n\n"
-        f"Recommended corrective action: {action}\n\n"
-        "Evidence basis: recorded test execution output only."
+    return _clean_generated_code(
+        generated
     )
 
 
 # ============================================================
-# GEMINI - FAILURE RCA
+# AI FAILURE EXPLANATION
 # ============================================================
 
 def explain_failure_with_gemini(
-    failure_text: str,
+    evidence: str,
 ) -> str:
     """
-    Generate AI-assisted root cause analysis.
+    Explain test failures using Gemini.
 
-    Falls back to deterministic RCA if Gemini is unavailable.
+    A deterministic fallback is returned if Gemini
+    is unavailable or rate-limited.
     """
 
-    deterministic = _deterministic_rca(
-        failure_text
-    )
-
-    if not os.getenv("GEMINI_API_KEY"):
-        return deterministic
-
-    if not _langchain_available():
-        return deterministic
-
-    category = classify_failure(
-        failure_text
-    )
-
-    system = """
-You are TestGenIQ's Senior SDET Root Cause Analysis assistant.
-
-Analyze ONLY the supplied test execution evidence.
-
-Return:
-
-FAILURE CATEGORY:
-ROOT CAUSE:
-EVIDENCE:
-CONTRACT IMPACT:
-AFFECTED COMPONENT:
-CONFIDENCE:
-CORRECTIVE ACTION:
-
-Rules:
-
-- Do not invent facts.
-- Do not claim unsupported root causes.
-- Distinguish confirmed evidence from likely causes.
-- If evidence is insufficient, explicitly say so.
-- Focus on actionable QA/SDET analysis.
-"""
-
-    human = (
-        f"Deterministic failure category: {category}\n\n"
-        "Recorded execution evidence:\n"
-        f"{failure_text[:12000]}"
-    )
+    if not GEMINI_API_KEY:
+        return deterministic_failure_explanation(
+            evidence
+        )
 
     try:
 
-        result = _invoke(
-            _build_gemini(),
-            system,
-            human,
+        from langchain_google_genai import (
+            ChatGoogleGenerativeAI
         )
 
-        if result.strip():
-            return result
+        model = ChatGoogleGenerativeAI(
+            model=GEMINI_MODEL,
+            google_api_key=GEMINI_API_KEY,
+            temperature=0,
+        )
+
+        response = model.invoke(
+            f"""
+You are TestGenIQ's failure-analysis engine.
+
+Analyze this API testing evidence.
+
+Identify:
+
+1. Failure category
+2. Likely root cause
+3. Evidence
+4. Recommended remediation
+5. Whether the issue is an application defect,
+   contract mismatch, test-data issue, or tooling issue.
+
+Do not invent information.
+
+FAILURE EVIDENCE
+================
+
+{evidence}
+"""
+        )
+
+        content = getattr(
+            response,
+            "content",
+            str(response),
+        )
+
+        return str(content)
 
     except Exception:
-        pass
+        return deterministic_failure_explanation(
+            evidence
+        )
 
-    return deterministic
+
+def deterministic_failure_explanation(
+    evidence: str,
+) -> str:
+
+    text = evidence.lower()
+
+    if "404" in text:
+        return (
+            "Failure category: Test-data/resource mismatch.\n"
+            "Likely root cause: The requested resource does "
+            "not exist in the in-memory application state.\n"
+            "Evidence: The execution output contains HTTP 404.\n"
+            "Recommended remediation: Seed the required "
+            "resource before state-dependent contract tests."
+        )
+
+    if "422" in text:
+        return (
+            "Failure category: Validation/contract mismatch.\n"
+            "Likely root cause: Generated input does not satisfy "
+            "the API validation contract or expected schema.\n"
+            "Evidence: The execution output contains HTTP 422.\n"
+            "Recommended remediation: Compare generated input "
+            "with the OpenAPI request schema."
+        )
+
+    if "500" in text:
+        return (
+            "Failure category: Server error.\n"
+            "Likely root cause: The API raised an unexpected "
+            "internal exception.\n"
+            "Evidence: The execution output contains HTTP 500.\n"
+            "Recommended remediation: Inspect application logs "
+            "and reproduce the failing request."
+        )
+
+    return (
+        "Failure category: Test execution/contract mismatch.\n"
+        "Root cause requires inspection of the supplied "
+        "execution evidence.\n"
+        "Recommended remediation: Compare expected and actual "
+        "HTTP status, response body and contract definition."
+    )
+
+
+def classify_failure(
+    evidence: str,
+) -> str:
+
+    text = evidence.lower()
+
+    if "500" in text:
+        return "server_error"
+
+    if "422" in text:
+        return "validation_or_schema_mismatch"
+
+    if "404" in text:
+        return "missing_resource_or_test_data"
+
+    if "allow header" in text:
+        return "http_contract_header_mismatch"
+
+    if "undocumented" in text:
+        return "undocumented_status_code"
+
+    if "network error" in text:
+        return "network_or_environment_error"
+
+    return "contract_or_test_execution_failure"

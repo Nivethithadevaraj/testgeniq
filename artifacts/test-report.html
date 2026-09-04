@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TestGenIQ Unified Test Report</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    background: #f7f7f7;
+    color: #222;
+}
+
+h1 {
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #666;
+}
+
+.cards {
+    display: flex;
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.card {
+    background: white;
+    padding: 18px;
+    border-radius: 8px;
+    min-width: 150px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+
+.value {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background: #eee;
+}
+
+.rca {
+    background: white;
+    margin: 18px 0;
+    padding: 18px;
+    border-radius: 8px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #111;
+    color: #eee;
+    padding: 14px;
+    border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>TestGenIQ Unified Test Report</h1>
+
+<div class="subtitle">
+Generated:
+2026-09-04 11:59:25
+</div>
+
+<div class="cards">
+
+<div class="card">
+<div>Test Engines</div>
+<div class="value">5</div>
+</div>
+
+<div class="card">
+<div>Passed</div>
+<div class="value">3</div>
+</div>
+
+<div class="card">
+<div>Failed</div>
+<div class="value">2</div>
+</div>
+
+<div class="card">
+<div>Pass Rate</div>
+<div class="value">60.0%</div>
+</div>
+
+</div>
+
+<h2>Execution Summary</h2>
+
+<table>
+<thead>
+<tr>
+<th>Engine</th>
+<th>Status</th>
+<th>Return Code</th>
+<th>Evidence Log</th>
+</tr>
+</thead>
+
+<tbody>
+
+            <tr>
+                <td>Pytest</td>
+                <td>PASS</td>
+                <td>0</td>
+                <td>C:\Users\nivethitha.devaraj\Desktop\testgeniq_complete\artifacts\pytest.log</td>
+            </tr>
+            
+            <tr>
+                <td>Schemathesis</td>
+                <td>FAIL</td>
+                <td>1</td>
+                <td>C:\Users\nivethitha.devaraj\Desktop\testgeniq_complete\artifacts\schemathesis.log</td>
+            </tr>
+            
+            <tr>
+                <td>Dredd</td>
+                <td>FAIL</td>
+                <td>1</td>
+                <td>C:\Users\nivethitha.devaraj\Desktop\testgeniq_complete\artifacts\dredd.log</td>
+            </tr>
+            
+            <tr>
+                <td>Newman</td>
+                <td>PASS</td>
+                <td>0</td>
+                <td>C:\Users\nivethitha.devaraj\Desktop\testgeniq_complete\artifacts\newman.log</td>
+            </tr>
+            
+            <tr>
+                <td>Playwright</td>
+                <td>PASS</td>
+                <td>0</td>
+                <td>C:\Users\nivethitha.devaraj\Desktop\testgeniq_complete\artifacts\playwright.log</td>
+            </tr>
+            
+</tbody>
+</table>
+
+<h2>AI Failure Intelligence</h2>
+
+
+                <section class="rca">
+                    <h3>Schemathesis</h3>
+                    <p>
+                        <strong>Classification:</strong>
+                        missing_resource_or_test_data
+                    </p>
+                    <pre>Failure category: Test-data/resource mismatch.
+Likely root cause: The requested resource does not exist in the in-memory application state.
+Evidence: The execution output contains HTTP 404.
+Recommended remediation: Seed the required resource before state-dependent contract tests.</pre>
+                </section>
+                
+                <section class="rca">
+                    <h3>Dredd</h3>
+                    <p>
+                        <strong>Classification:</strong>
+                        validation_or_schema_mismatch
+                    </p>
+                    <pre>Failure category: Test-data/resource mismatch.
+Likely root cause: The requested resource does not exist in the in-memory application state.
+Evidence: The execution output contains HTTP 404.
+Recommended remediation: Seed the required resource before state-dependent contract tests.</pre>
+                </section>
+                
+
+<h2>Generation Manifest</h2><pre>{
+  &quot;generator&quot;: &quot;TestGenIQ&quot;,
+  &quot;source_of_truth&quot;: &quot;OpenAPI + Python source&quot;,
+  &quot;generated_files&quot;: [
+    &quot;tests\\test_tasks.py&quot;,
+    &quot;tests\\test_auth.py&quot;
+  ],
+  &quot;generation_modes&quot;: {
+    &quot;tasks&quot;: &quot;deterministic_fallback&quot;,
+    &quot;auth&quot;: &quot;deterministic_fallback&quot;
+  },
+  &quot;scenario_types&quot;: [
+    &quot;positive&quot;,
+    &quot;negative&quot;,
+    &quot;edge&quot;
+  ],
+  &quot;source_modules&quot;: [
+    &quot;app\\tasks.py&quot;,
+    &quot;app\\auth.py&quot;
+  ]
+}</pre>
+
+</body>
+</html>

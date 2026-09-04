@@ -7,35 +7,175 @@ on:
 jobs:
   testgeniq:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # =====================================================
+      # CHECKOUT
+      # =====================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # =====================================================
+      # PYTHON
+      # =====================================================
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: actions/setup-node@v4
+
+      # =====================================================
+      # NODE
+      # =====================================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: python -m pip install --upgrade pip
-      - run: pip install -r requirements.txt
-      - run: npm install
-      - run: python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-      - run: sleep 3
-      - run: python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/openapi.json').status)"
-      - run: python -c "import urllib.request; open('openapi.json','wb').write(urllib.request.urlopen('http://127.0.0.1:8000/openapi.json').read())"
-      - run: python -m pytest --cov=app --cov=engine --cov-report=term-missing --cov-report=html
-      - run: python generate_tests.py
+          cache: "npm"
+
+      # =====================================================
+      # PYTHON DEPENDENCIES
+      # =====================================================
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # =====================================================
+      # NODE DEPENDENCIES
+      # =====================================================
+      - name: Install Node dependencies
+        run: npm ci
+
+      # =====================================================
+      # PLAYWRIGHT BROWSER
+      # =====================================================
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # =====================================================
+      # START FASTAPI
+      # =====================================================
+      - name: Start FastAPI application
+        run: |
+          python -m uvicorn app.main:app \
+            --host 127.0.0.1 \
+            --port 8000 > server.log 2>&1 &
+
+      # =====================================================
+      # WAIT FOR API
+      # =====================================================
+      - name: Wait for API
+        run: |
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8000/health"
+
+          for attempt in range(30):
+              try:
+                  response = urllib.request.urlopen(url)
+                  if response.status == 200:
+                      print("FastAPI is ready")
+                      break
+              except Exception:
+                  pass
+
+              print(f"Waiting for FastAPI... attempt {attempt + 1}/30")
+              time.sleep(1)
+          else:
+              print("FastAPI did not start successfully")
+              raise SystemExit(1)
+          PY
+
+      # =====================================================
+      # FETCH OPENAPI
+      # =====================================================
+      - name: Fetch OpenAPI specification
+        run: |
+          python -c "import urllib.request; open('openapi.json','wb').write(urllib.request.urlopen('http://127.0.0.1:8000/openapi.json').read())"
+
+      - name: Validate OpenAPI endpoint
+        run: |
+          python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/openapi.json').status)"
+
+      # =====================================================
+      # EXISTING PYTEST SUITE
+      # =====================================================
+      - name: Run existing pytest suite
+        run: |
+          python -m pytest tests -v
+
+      # =====================================================
+      # AI TEST GENERATION
+      # =====================================================
+      - name: Generate AI tests
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      - run: python run_testgeniq.py
+        run: |
+          python generate_tests.py
+
+      # =====================================================
+      # VERIFY AI GENERATED TESTS
+      # =====================================================
+      - name: Verify generated test assets
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass `
+            -File scripts/verify_generation.ps1
+
+      # =====================================================
+      # RUN GENERATED PYTEST TESTS
+      # =====================================================
+      - name: Run generated pytest tests
+        run: |
+          python -m pytest tests -v
+
+      # =====================================================
+      # ENGINE COVERAGE
+      # =====================================================
+      # Coverage is measured AFTER the generated tests exist.
+      # The project target is at least 80% engine coverage.
+      # =====================================================
+      - name: Measure TestGenIQ engine coverage
+        run: |
+          python -m pytest tests \
+            --cov=engine \
+            --cov-report=term-missing \
+            --cov-report=html:htmlcov \
+            --cov-fail-under=80
+
+      # =====================================================
+      # PLAYWRIGHT API E2E
+      # =====================================================
+      - name: Run Playwright API E2E tests
+        run: |
+          npx playwright test
+
+      # =====================================================
+      # COMPLETE TESTGENIQ PIPELINE
+      # =====================================================
+      - name: Run TestGenIQ end-to-end pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      - uses: actions/upload-artifact@v4
+        run: |
+          python run_testgeniq.py
+
+      # =====================================================
+      # UPLOAD ALL EVIDENCE
+      # =====================================================
+      - name: Upload TestGenIQ artifacts
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: testgeniq-artifacts
           path: |
             htmlcov/
             artifacts/
             postman/generated_collection.json
+            playwright.config.js
+            playwright/
+            test-results/
+            server.log

@@ -1,42 +1,17 @@
-# Python virtual environments
 .venv/
 venv/
-
-# Environment / secrets
 .env
-.env.*
-!.env.example
-
-# Python cache
 __pycache__/
-*.py[cod]
-
-# Pytest
 .pytest_cache/
-.coverage
-htmlcov/
-
-# IDE
 .idea/
-.vscode/
 
-# TestGenIQ generated artifacts
-artifacts/
-*.log
-
-# Schemathesis
+node_modules/
 .schemathesis/
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+htmlcov/
+playwright-report/
+test-results/
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
+artifacts/*.log
+artifacts/*.json
+artifacts/*.xml

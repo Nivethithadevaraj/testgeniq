@@ -1,6 +1,13 @@
 {
-  "name":"testgeniq",
-  "private":true,
-  "scripts":{"newman":"newman run postman/generated_collection.json","dredd":"dredd artifacts/dredd_openapi.json http://127.0.0.1:8000"},
-  "devDependencies":{"dredd":"^14.1.0","newman":"^6.2.2"}
+  "name": "testgeniq",
+  "private": true,
+  "scripts": {
+    "newman": "newman run postman/generated_collection.json",
+    "dredd": "dredd artifacts/dredd_openapi.json http://127.0.0.1:8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "dredd": "^14.1.0",
+    "newman": "^6.2.2"
+  }
 }

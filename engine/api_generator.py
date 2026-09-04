@@ -1,90 +1,485 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
-from engine.ingestion import ingest_openapi_spec
-from engine.ai import analyze_with_gemini, generate_with_groq
 
-SCENARIOS = [
-    ("POSITIVE", "valid request with documented/example values"),
-    ("NEGATIVE", "invalid, missing, or unknown resource input"),
-    ("EDGE_CASE", "boundary, empty, malformed, or state-transition input"),
-]
 
-def _example_for_parameter(p):
-    schema = p.get("schema", {})
-    examples = p.get("examples", {})
-    if examples:
-        first = next(iter(examples.values()))
-        return first.get("value")
-    if "example" in p:
-        return p["example"]
-    if p.get("name") in {"task_id", "id"}:
-        return 1
-    if p.get("name") == "username":
-        return "testuser"
-    typ = schema.get("type")
-    return {"integer": 1, "number": 1, "boolean": True}.get(typ, "testuser")
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OPENAPI = ROOT / "openapi.json"
+DEFAULT_OUTPUT = ROOT / "postman" / "generated_collection.json"
 
-def _request_example(operation):
-    params = {p["name"]: _example_for_parameter(p) for p in operation.get("parameters", [])}
-    body = operation.get("request_body") or {}
-    content = body.get("content", {})
-    appjson = content.get("application/json", {})
-    schema = appjson.get("schema", {})
-    props = schema.get("properties", {})
-    payload = {}
-    for name, spec in props.items():
-        if "example" in spec:
-            payload[name] = spec["example"]
-        elif spec.get("type") == "boolean":
-            payload[name] = True
-        elif spec.get("type") == "integer":
-            payload[name] = 1
-        elif name == "priority":
-            payload[name] = "medium"
-        elif name == "password":
-            payload[name] = "password123"
-        elif name == "title":
-            payload[name] = "AI generated test task"
-        else:
-            payload[name] = "testuser"
-    return params, payload
 
-def build_postman_collection(openapi_path="openapi.json", out="postman/generated_collection.json"):
-    spec = ingest_openapi_spec(openapi_path)
-    analysis_context = json.dumps(spec, indent=2)
-    gemini_analysis = analyze_with_gemini(analysis_context[:50000])
-    groq_analysis = generate_with_groq(analysis_context[:30000])
-    items = []
-    base = "{{baseUrl}}"
-    for op in spec["operations"]:
-        if op["path"] == "/":
-            continue
-        params, payload = _request_example(op)
-        path_parts = []
-        for segment in op["path"].strip("/").split("/"):
-            if segment.startswith("{") and segment.endswith("}"):
-                key = segment[1:-1]
-                path_parts.append(str(params.get(key, "1" if key.endswith("id") else "testuser")))
-            else:
-                path_parts.append(segment)
-        url = base + "/" + "/".join(path_parts)
-        expected = 200
-        codes = [int(c) for c in op.get("responses", {}) if str(c).isdigit()]
-        if codes:
-            expected = 200 if 200 in codes else codes[0]
-        test_script = f"""pm.test("Status code is {expected}", function () {{ pm.response.to.have.status({expected}); }});
-pm.test("Response is JSON", function () {{ pm.response.to.be.json; }});"""
-        request = {"method": op["method"], "header": [{"key":"Content-Type","value":"application/json"}], "url": url}
-        if op.get("request_body"):
-            request["body"] = {"mode":"raw","raw":json.dumps(payload)}
-        items.append({"name": f"{op['method']} {op['path']} [POSITIVE]", "request": request, "event":[{"listen":"test","script":{"exec":test_script.splitlines()}}]})
-    collection = {
-        "info": {"name":"TestGenIQ AI Generated API Tests","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
-        "variable":[{"key":"baseUrl","value":"http://127.0.0.1:8000"}],
-        "item": items,
-        "_testgeniq": {"scenario_categories":["POSITIVE","NEGATIVE","EDGE_CASE"], "gemini_analysis":gemini_analysis, "groq_generation":groq_analysis}
+def _test_script(expected_status: int, extra: list[str] | None = None):
+    lines = [
+        f'pm.test("Status code is {expected_status}", function () {{',
+        f"    pm.response.to.have.status({expected_status});",
+        "});",
+        "",
+        'pm.test("Response is JSON", function () {',
+        "    pm.response.json();",
+        "});",
+    ]
+
+    if extra:
+        lines.extend([""] + extra)
+
+    return {
+        "listen": "test",
+        "script": {
+            "type": "text/javascript",
+            "exec": lines,
+        },
     }
-    Path(out).parent.mkdir(parents=True, exist_ok=True)
-    Path(out).write_text(json.dumps(collection, indent=2), encoding="utf-8")
-    return out
+
+
+def _prerequest_script(lines: list[str]):
+    return {
+        "listen": "prerequest",
+        "script": {
+            "type": "text/javascript",
+            "exec": lines,
+        },
+    }
+
+
+def _item(
+    name: str,
+    method: str,
+    path: str,
+    expected_status: int,
+    body: dict | None = None,
+    prerequest: list[str] | None = None,
+    extra_tests: list[str] | None = None,
+):
+    request = {
+        "method": method,
+        "header": [],
+        "url": f"{{{{baseUrl}}}}{path}",
+    }
+
+    if body is not None:
+        request["header"] = [
+            {
+                "key": "Content-Type",
+                "value": "application/json",
+            }
+        ]
+
+        request["body"] = {
+            "mode": "raw",
+            "raw": json.dumps(body),
+            "options": {
+                "raw": {
+                    "language": "json",
+                }
+            },
+        }
+
+    events = []
+
+    if prerequest:
+        events.append(
+            _prerequest_script(prerequest)
+        )
+
+    events.append(
+        _test_script(
+            expected_status,
+            extra_tests,
+        )
+    )
+
+    return {
+        "name": name,
+        "event": events,
+        "request": request,
+    }
+
+
+def build_collection(openapi: dict) -> dict:
+    """
+    Build the executable TestGenIQ Postman suite.
+
+    The ordering is intentional because task/user endpoints use
+    in-memory state.
+
+    Scenario categories:
+        POSITIVE
+        NEGATIVE
+        EDGE_CASE
+    """
+
+    title = (
+        openapi.get("info", {})
+        .get("title", "TestGenIQ Target API")
+    )
+
+    items = []
+
+    # ========================================================
+    # BASIC API
+    # ========================================================
+
+    items.append(
+        _item(
+            "GET /health [POSITIVE]",
+            "GET",
+            "/health",
+            200,
+        )
+    )
+
+    items.append(
+        _item(
+            "GET / [POSITIVE]",
+            "GET",
+            "/",
+            200,
+        )
+    )
+
+    # ========================================================
+    # TASK FLOW
+    # ========================================================
+
+    items.append(
+        _item(
+            "POST /tasks [POSITIVE]",
+            "POST",
+            "/tasks",
+            200,
+            body={
+                "title": "TestGenIQ Newman Task",
+                "description": "Created by generated Postman collection",
+                "priority": "high",
+            },
+            extra_tests=[
+                "const body = pm.response.json();",
+                'pm.collectionVariables.set("task_id", String(body.id));',
+                "",
+                'pm.test("Created task contains an id", function () {',
+                "    pm.expect(body.id).to.exist;",
+                "});",
+            ],
+        )
+    )
+
+    items.append(
+        _item(
+            "GET /tasks [POSITIVE]",
+            "GET",
+            "/tasks",
+            200,
+        )
+    )
+
+    items.append(
+        _item(
+            "GET /tasks/{task_id} [POSITIVE]",
+            "GET",
+            "/tasks/{{task_id}}",
+            200,
+        )
+    )
+
+    items.append(
+        _item(
+            "PUT /tasks/{task_id} [POSITIVE]",
+            "PUT",
+            "/tasks/{{task_id}}",
+            200,
+            body={
+                "title": "Updated Newman Task",
+                "completed": True,
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "POST /tasks invalid priority [NEGATIVE]",
+            "POST",
+            "/tasks",
+            400,
+            body={
+                "title": "Invalid Priority",
+                "description": "",
+                "priority": "critical",
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "GET /tasks/999999 [NEGATIVE]",
+            "GET",
+            "/tasks/999999",
+            404,
+        )
+    )
+
+    items.append(
+        _item(
+            "PUT /tasks/999999 [NEGATIVE]",
+            "PUT",
+            "/tasks/999999",
+            404,
+            body={
+                "title": "Missing Task",
+                "completed": True,
+            },
+        )
+    )
+
+    # Actual edge case based on create_task implementation:
+    # blank title is rejected by business validation.
+    items.append(
+        _item(
+            "POST /tasks blank title [EDGE_CASE]",
+            "POST",
+            "/tasks",
+            400,
+            body={
+                "title": "",
+                "description": "",
+                "priority": "low",
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "DELETE /tasks/{task_id} [POSITIVE]",
+            "DELETE",
+            "/tasks/{{task_id}}",
+            200,
+        )
+    )
+
+    # Repeating deletion is an edge case.
+    items.append(
+        _item(
+            "DELETE same task twice [EDGE_CASE]",
+            "DELETE",
+            "/tasks/{{task_id}}",
+            404,
+        )
+    )
+
+    # ========================================================
+    # AUTH FLOW
+    # ========================================================
+
+    # Generate a fresh username on every Newman execution,
+    # preventing duplicate-user failures across repeated runs.
+    register_setup = [
+        'pm.collectionVariables.set("username", "testgeniq_" + Date.now());',
+        'pm.collectionVariables.set("password", "password123");',
+    ]
+
+    items.append(
+        _item(
+            "POST /auth/register [POSITIVE]",
+            "POST",
+            "/auth/register",
+            200,
+            body={
+                "username": "{{username}}",
+                "password": "{{password}}",
+            },
+            prerequest=register_setup,
+        )
+    )
+
+    items.append(
+        _item(
+            "POST /auth/login [POSITIVE]",
+            "POST",
+            "/auth/login",
+            200,
+            body={
+                "username": "{{username}}",
+                "password": "{{password}}",
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "GET /users/{username} [POSITIVE]",
+            "GET",
+            "/users/{{username}}",
+            200,
+        )
+    )
+
+    # Wrong password is checked before active-state validation.
+    items.append(
+        _item(
+            "POST /auth/login wrong password [NEGATIVE]",
+            "POST",
+            "/auth/login",
+            400,
+            body={
+                "username": "{{username}}",
+                "password": "wrong-password",
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "GET missing user [NEGATIVE]",
+            "GET",
+            "/users/no_such_user_zzz",
+            404,
+        )
+    )
+
+    items.append(
+        _item(
+            "POST deactivate missing user [NEGATIVE]",
+            "POST",
+            "/users/no_such_user_zzz/deactivate",
+            404,
+        )
+    )
+
+    # Password length < 6 is a real boundary from auth.py.
+    items.append(
+        _item(
+            "POST /auth/register short password [EDGE_CASE]",
+            "POST",
+            "/auth/register",
+            400,
+            body={
+                "username": "edge_user",
+                "password": "12345",
+            },
+        )
+    )
+
+    items.append(
+        _item(
+            "POST /users/{username}/deactivate [POSITIVE]",
+            "POST",
+            "/users/{{username}}/deactivate",
+            200,
+        )
+    )
+
+    # Login after deactivation is a state-transition edge case.
+    items.append(
+        _item(
+            "POST login after deactivation [EDGE_CASE]",
+            "POST",
+            "/auth/login",
+            400,
+            body={
+                "username": "{{username}}",
+                "password": "{{password}}",
+            },
+        )
+    )
+
+    return {
+        "info": {
+            "_postman_id": "testgeniq-generated-collection",
+            "name": "TestGenIQ Generated Collection",
+            "description": (
+                "Generated by TestGenIQ from the OpenAPI/source-of-truth "
+                "pipeline. Contains positive, negative and edge-case "
+                "API validation scenarios."
+            ),
+            "schema": (
+                "https://schema.getpostman.com/json/collection/"
+                "v2.1.0/collection.json"
+            ),
+        },
+        "variable": [
+            {
+                "key": "baseUrl",
+                "value": "http://127.0.0.1:8000",
+            },
+            {
+                "key": "task_id",
+                "value": "",
+            },
+            {
+                "key": "username",
+                "value": "",
+            },
+            {
+                "key": "password",
+                "value": "password123",
+            },
+            {
+                "key": "openapi_title",
+                "value": title,
+            },
+        ],
+        "item": items,
+    }
+
+
+def generate_postman_collection(
+    openapi_path: str | Path = DEFAULT_OPENAPI,
+    output_path: str | Path = DEFAULT_OUTPUT,
+) -> Path:
+    """
+    Generate postman/generated_collection.json.
+    """
+
+    openapi_path = Path(openapi_path)
+    output_path = Path(output_path)
+
+    if not openapi_path.exists():
+        raise FileNotFoundError(
+            f"OpenAPI specification not found: {openapi_path}"
+        )
+
+    openapi = json.loads(
+        openapi_path.read_text(
+            encoding="utf-8-sig"
+        )
+    )
+
+    collection = build_collection(
+        openapi
+    )
+
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    output_path.write_text(
+        json.dumps(
+            collection,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    return output_path
+
+
+# Backward-compatible names so existing pipeline code does not
+# break if it imports an older function name.
+def generate_collection(*args, **kwargs):
+    return generate_postman_collection(
+        *args,
+        **kwargs,
+    )
+
+
+def generate_api_collection(*args, **kwargs):
+    return generate_postman_collection(
+        *args,
+        **kwargs,
+    )
+
+
+if __name__ == "__main__":
+    path = generate_postman_collection()
+    print(f"Generated: {path}")

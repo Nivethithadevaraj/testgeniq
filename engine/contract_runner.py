@@ -243,6 +243,7 @@ def run_all_contract_tests():
         2. Schemathesis
         3. Dredd
         4. Newman
+        5. Playwright
 
     Results are written to:
         artifacts/contract-results.json
@@ -327,6 +328,8 @@ def run_all_contract_tests():
             "dredd",
             str(dredd_spec),
             "http://127.0.0.1:8000",
+            "--hookfiles",
+            "scripts/dredd_hooks.js",
             "--reporter",
             "xunit",
             "--output",
@@ -371,20 +374,43 @@ def run_all_contract_tests():
 
     try:
 
-        newman_cmd = _npx_command(
-            "newman",
-            "run",
-            "postman/testgeniq_collection.json",
-            "--reporters",
-            "cli,json",
-            "--reporter-json-export",
-            "artifacts/newman.json",
+        generated_collection = (
+                ROOT
+                / "postman"
+                / "generated_collection.json"
         )
 
-        results["newman"] = _run(
-            newman_cmd,
-            "newman.log",
-        )
+        if not generated_collection.exists():
+
+            results["newman"] = {
+                "command": [],
+                "return_code": None,
+                "passed": False,
+                "available": False,
+                "stdout": "",
+                "stderr": (
+                    "AI-generated Postman collection was not found: "
+                    f"{generated_collection}"
+                ),
+                "log": None,
+            }
+
+        else:
+
+            newman_cmd = _npx_command(
+                "newman",
+                "run",
+                str(generated_collection),
+                "--reporters",
+                "cli,json",
+                "--reporter-json-export",
+                "artifacts/newman.json",
+            )
+
+            results["newman"] = _run(
+                newman_cmd,
+                "newman.log",
+            )
 
     except FileNotFoundError as exc:
 
@@ -397,7 +423,37 @@ def run_all_contract_tests():
             "stderr": str(exc),
             "log": None,
         }
+    # =========================================================
+    # 5. PLAYWRIGHT
+    # =========================================================
 
+    try:
+
+        playwright_cmd = _npx_command(
+            "playwright",
+            "test",
+        )
+
+        results["playwright"] = _run(
+            playwright_cmd,
+            "playwright.log",
+        )
+
+    except FileNotFoundError as exc:
+
+        results["playwright"] = {
+            "command": [
+                "npx",
+                "playwright",
+                "test",
+            ],
+            "return_code": None,
+            "passed": False,
+            "available": False,
+            "stdout": "",
+            "stderr": str(exc),
+            "log": None,
+        }
     # =========================================================
     # UNIFIED RESULTS
     # =========================================================
