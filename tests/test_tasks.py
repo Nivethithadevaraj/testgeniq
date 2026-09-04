@@ -1,193 +1,163 @@
 import pytest
+from app import tasks
 
-from app.tasks import (
-    clear_tasks,
-    create_task,
-    get_all_tasks,
-    get_task_by_id,
-    update_task,
-    delete_task,
-)
-
+# Fixtures --------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def reset_tasks():
-    clear_tasks()
+def reset_state():
+    """Ensure a clean task database before each test."""
+    tasks.clear_tasks()
     yield
-    clear_tasks()
+    tasks.clear_tasks()
 
 
-# POSITIVE SCENARIO
+# Helper ---------------------------------------------------------------
+
+def create_sample_task(title="Sample Task", description="Desc", priority="medium"):
+    """Create a task using the public API and return the dict."""
+    return tasks.create_task(title=title, description=description, priority=priority)
+
+
+# Tests for create_task --------------------------------------------------
+
 def test_create_task_positive():
-    task = create_task(
-        title="Prepare report",
-        description="Prepare the weekly report",
-        priority="high",
-    )
-
-    assert task["title"] == "Prepare report"
-    assert task["description"] == "Prepare the weekly report"
+    """POSITIVE SCENARIO: create a task with all valid arguments."""
+    task = tasks.create_task(title="Buy Groceries", description="Milk, Eggs", priority="high")
+    assert isinstance(task, dict)
+    assert task["id"] == 1
+    assert task["title"] == "Buy Groceries"
+    assert task["description"] == "Milk, Eggs"
     assert task["priority"] == "high"
     assert task["completed"] is False
 
+def test_create_task_title_whitespace_edge():
+    """EDGE CASE: title with surrounding whitespace should be stripped."""
+    task = tasks.create_task(title="  padded title  ")
+    assert task["title"] == "padded title"
 
-# NEGATIVE SCENARIO
-def test_create_task_negative_invalid_priority():
-    with pytest.raises(
-        ValueError,
-        match="Priority must be low, medium, or high",
-    ):
-        create_task(
-            title="Invalid task",
-            priority="invalid",
-        )
+def test_create_task_invalid_title_negative():
+    """NEGATIVE SCENARIO: empty or whitespace‑only title raises ValueError."""
+    with pytest.raises(ValueError, match="Title cannot be empty"):
+        tasks.create_task(title="")
+    with pytest.raises(ValueError, match="Title cannot be empty"):
+        tasks.create_task(title="   ")
 
-
-# EDGE CASE
-def test_create_task_edge_empty_title():
-    with pytest.raises(
-        ValueError,
-        match="Title cannot be empty",
-    ):
-        create_task(
-            title="",
-            priority="low",
-        )
+def test_create_task_invalid_priority_negative():
+    """NEGATIVE SCENARIO: priority not in allowed set raises ValueError."""
+    with pytest.raises(ValueError, match="Priority must be low, medium, or high"):
+        tasks.create_task(title="Task", priority="urgent")
+    with pytest.raises(ValueError, match="Priority must be low, medium, or high"):
+        tasks.create_task(title="Task", priority="LOW")
 
 
-# POSITIVE SCENARIO
+# Tests for get_all_tasks -----------------------------------------------
+
 def test_get_all_tasks_positive():
-    create_task(
-        title="Task one",
-        priority="low",
-    )
+    """POSITIVE SCENARIO: retrieve all tasks after creating several."""
+    t1 = create_sample_task(title="T1")
+    t2 = create_sample_task(title="T2", priority="low")
+    all_tasks = tasks.get_all_tasks()
+    assert isinstance(all_tasks, list)
+    assert len(all_tasks) == 2
+    ids = {t["id"] for t in all_tasks}
+    assert ids == {t1["id"], t2["id"]}
 
-    create_task(
-        title="Task two",
-        priority="high",
-    )
-
-    result = get_all_tasks()
-
-    assert len(result) == 2
-    assert result[0]["title"] == "Task one"
-    assert result[1]["title"] == "Task two"
+def test_get_all_tasks_empty_edge():
+    """EDGE CASE: when no tasks exist, an empty list is returned."""
+    assert tasks.get_all_tasks() == []
 
 
-# NEGATIVE SCENARIO
-def test_get_all_tasks_negative_empty_store():
-    result = get_all_tasks()
+# Tests for get_task_by_id ----------------------------------------------
 
-    assert result == []
-
-
-# EDGE CASE
-def test_get_all_tasks_edge_after_delete():
-    task = create_task(
-        title="Temporary task",
-        priority="medium",
-    )
-
-    delete_task(task["id"])
-
-    assert get_all_tasks() == []
-
-
-# POSITIVE SCENARIO
 def test_get_task_by_id_positive():
-    task = create_task(
-        title="Read specification",
-        priority="medium",
-    )
+    """POSITIVE SCENARIO: retrieve an existing task by its id."""
+    task = create_sample_task(title="Find Me")
+    fetched = tasks.get_task_by_id(task["id"])
+    assert fetched == task
 
-    result = get_task_by_id(task["id"])
-
-    assert result is not None
-    assert result["id"] == task["id"]
-
-
-# NEGATIVE SCENARIO
-def test_get_task_by_id_negative_missing_id():
-    assert get_task_by_id(999999) is None
+def test_get_task_by_id_nonexistent_edge():
+    """EDGE CASE: requesting a non‑existent id returns None."""
+    assert tasks.get_task_by_id(999) is None
+    assert tasks.get_task_by_id(0) is None
+    assert tasks.get_task_by_id(-1) is None
 
 
-# EDGE CASE
-def test_get_task_by_id_edge_first_id():
-    task = create_task(
-        title="First task",
-        priority="low",
-    )
+# Tests for update_task -------------------------------------------------
 
-    assert get_task_by_id(1) == task
-
-
-# POSITIVE SCENARIO
 def test_update_task_positive():
-    task = create_task(
-        title="Original",
-        priority="low",
-    )
+    """POSITIVE SCENARIO: update title and completed flag."""
+    task = create_sample_task(title="Old Title")
+    updated = tasks.update_task(task_id=task["id"], title="New Title", completed=True)
+    assert updated["id"] == task["id"]
+    assert updated["title"] == "New Title"
+    assert updated["completed"] is True
+    # unchanged fields remain the same
+    assert updated["description"] == task["description"]
+    assert updated["priority"] == task["priority"]
 
-    result = update_task(
-        task["id"],
-        title="Updated",
-        completed=True,
-    )
+def test_update_task_title_whitespace_edge():
+    """EDGE CASE: title whitespace is stripped on update."""
+    task = create_sample_task(title="Initial")
+    updated = tasks.update_task(task_id=task["id"], title="  trimmed  ")
+    assert updated["title"] == "trimmed"
 
-    assert result is not None
-    assert result["title"] == "Updated"
-    assert result["completed"] is True
+def test_update_task_no_changes_edge():
+    """EDGE CASE: passing None for both optional args leaves task unchanged."""
+    task = create_sample_task(title="Static")
+    unchanged = tasks.update_task(task_id=task["id"])
+    assert unchanged == task
 
+def test_update_task_invalid_title_negative():
+    """NEGATIVE SCENARIO: empty title on update raises ValueError."""
+    task = create_sample_task()
+    with pytest.raises(ValueError, match="Title cannot be empty"):
+        tasks.update_task(task_id=task["id"], title="   ")
 
-# NEGATIVE SCENARIO
-def test_update_task_negative_missing_task():
-    result = update_task(
-        999999,
-        title="Missing",
-    )
-
-    assert result is None
-
-
-# EDGE CASE
-def test_update_task_edge_blank_title():
-    task = create_task(
-        title="Original",
-        priority="low",
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="Title cannot be empty",
-    ):
-        update_task(
-            task["id"],
-            title="",
-        )
+def test_update_task_nonexistent_edge():
+    """EDGE CASE: updating a non‑existent task returns None."""
+    assert tasks.update_task(task_id=999, title="Nope") is None
 
 
-# POSITIVE SCENARIO
+# Tests for delete_task -------------------------------------------------
+
 def test_delete_task_positive():
-    task = create_task(
-        title="Delete me",
-        priority="low",
-    )
+    """POSITIVE SCENARIO: delete an existing task."""
+    task = create_sample_task()
+    result = tasks.delete_task(task_id=task["id"])
+    assert result is True
+    # subsequent fetch should be None
+    assert tasks.get_task_by_id(task["id"]) is None
 
-    assert delete_task(task["id"]) is True
-    assert get_task_by_id(task["id"]) is None
+def test_delete_task_twice_edge():
+    """EDGE CASE: deleting the same task twice yields True then False."""
+    task = create_sample_task()
+    first = tasks.delete_task(task_id=task["id"])
+    second = tasks.delete_task(task_id=task["id"])
+    assert first is True
+    assert second is False
+
+def test_delete_task_nonexistent_edge():
+    """EDGE CASE: deleting a non‑existent id returns False."""
+    assert tasks.delete_task(task_id=12345) is False
 
 
-# NEGATIVE SCENARIO
-def test_delete_task_negative_missing_task():
-    assert delete_task(999999) is False
+# Tests for clear_tasks -------------------------------------------------
 
+def test_clear_tasks_resets_state():
+    """POSITIVE SCENARIO: clear_tasks empties DB and resets id counter."""
+    t1 = create_sample_task()
+    t2 = create_sample_task()
+    assert len(tasks.get_all_tasks()) == 2
+    tasks.clear_tasks()
+    assert tasks.get_all_tasks() == []
+    # New task after clear should start at id 1 again
+    t3 = tasks.create_task(title="First After Clear")
+    assert t3["id"] == 1
+    # Ensure previous ids are not reused unintentionally
+    assert t3["id"] != t1["id"] or t1["id"] == 1  # t1 may have been 1, but state is reset
 
-# EDGE CASE
-def test_delete_task_edge_repeated_delete():
-    task = create_task(
-        title="Delete twice",
-        priority="low",
-    )
-
-    assert delete_task(task["id"]) is True
-    assert delete_task(task["id"]) is False
+def test_clear_tasks_multiple_calls_edge():
+    """EDGE CASE: calling clear_tasks repeatedly does not raise."""
+    tasks.clear_tasks()
+    tasks.clear_tasks()  # should be a no‑op and not fail
+    assert tasks.get_all_tasks() == []

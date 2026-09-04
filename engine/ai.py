@@ -112,32 +112,28 @@ def generate_with_groq(
         model=GROQ_MODEL,
         groq_api_key=GROQ_API_KEY,
         temperature=0,
+        max_tokens=2500,
     )
 
     response = model.invoke(
         f"""
-You are TestGenIQ's production pytest code generator.
+Generate executable pytest Python source for TestGenIQ.
 
-Generate executable Python pytest source.
-
-STRICT REQUIREMENTS:
-
-- Use ONLY functions that appear in the supplied source.
-- Use ONLY parameters that appear in the supplied signatures.
-- Use ONLY exceptions actually raised by the source.
-- Use ONLY return fields actually produced by the source.
-- Do not invent endpoints.
-- Do not invent fields.
-- Do not invent business rules.
-- Include positive scenarios.
-- Include negative scenarios.
-- Include edge scenarios.
-- Use pytest fixtures where in-memory state exists.
-- Import only real functions.
-- Do not use Markdown fences.
-- Return Python source only.
-
+TARGET:
 {prompt}
+
+RULES:
+- Use only functions and behavior stated in the target.
+- Generate positive, negative, and edge-case tests.
+- Use pytest.
+- Use only real imports.
+- Do not invent functions, parameters, fields, exceptions, or behavior.
+- Return Python source only.
+- Do not use Markdown fences.
+- Include comments containing:
+  POSITIVE SCENARIO
+  NEGATIVE SCENARIO
+  EDGE CASE
 """
     )
 
@@ -148,8 +144,6 @@ STRICT REQUIREMENTS:
     )
 
     return str(content)
-
-
 # ============================================================
 # GENERATED CODE CLEANUP
 # ============================================================
@@ -175,7 +169,6 @@ def _clean_generated_code(
 
     return code.strip()
 
-
 # ============================================================
 # TEST GENERATION PIPELINE
 # ============================================================
@@ -189,11 +182,23 @@ def generate_test_code(
 
         Gemini -> analysis
         Groq   -> code generation
+
+    The original source/context is supplied to Gemini first.
+    Only Gemini's analysis is passed to Groq to avoid
+    duplicating the full source/OpenAPI payload.
     """
 
     analysis = analyze_with_gemini(
         prompt
     )
+
+    # Keep the Groq request comfortably below the model's
+    # context/request limit while preserving the useful
+    # Gemini analysis.
+    analysis = str(analysis).strip()
+
+    if len(analysis) > 16000:
+        analysis = analysis[:16000]
 
     generation_prompt = f"""
 TARGET MODULE
@@ -206,12 +211,15 @@ GEMINI SOURCE ANALYSIS
 
 {analysis}
 
-ORIGINAL SOURCE / REQUIREMENTS
-==============================
-
-{prompt}
-
 Generate executable pytest code now.
+
+Remember:
+- Use only functions and signatures identified in the analysis.
+- Use only behavior supported by the source.
+- Include positive, negative and edge scenarios.
+- Use pytest fixtures where appropriate.
+- Return Python source only.
+- Do not use Markdown fences.
 """
 
     generated = generate_with_groq(

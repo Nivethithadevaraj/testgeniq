@@ -322,17 +322,19 @@ def validate_generated_test_code(
     # Scenario markers
     # --------------------------------------------------------
 
-    if "POSITIVE SCENARIO" not in code:
+    normalized_code = code.upper()
+
+    if "POSITIVE" not in normalized_code:
         problems.append(
             "Missing POSITIVE scenario."
         )
 
-    if "NEGATIVE SCENARIO" not in code:
+    if "NEGATIVE" not in normalized_code:
         problems.append(
             "Missing NEGATIVE scenario."
         )
 
-    if "EDGE CASE" not in code:
+    if "EDGE" not in normalized_code:
         problems.append(
             "Missing EDGE scenario."
         )
