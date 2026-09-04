@@ -116,14 +116,13 @@ jobs:
         run: |
           python generate_tests.py
 
-      # =====================================================
+            # =====================================================
       # VERIFY AI GENERATED TESTS
       # =====================================================
       - name: Verify generated test assets
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass `
-            -File scripts/verify_generation.ps1
+          pwsh -File ./scripts/verify_generation.ps1
 
       # =====================================================
       # RUN GENERATED PYTEST TESTS
