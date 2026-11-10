@@ -235,19 +235,45 @@ Remember:
 # AI FAILURE EXPLANATION
 # ============================================================
 
-def explain_failure_with_gemini(
-    evidence: str,
-) -> str:
-    """
-    Explain test failures using Gemini.
+RCA_SOURCE_GEMINI = "gemini"
+RCA_SOURCE_FALLBACK = "rule_based_fallback"
 
-    A deterministic fallback is returned if Gemini
-    is unavailable or rate-limited.
+
+def _fallback_explanation(
+    evidence: str,
+    reason: str,
+) -> dict:
+
+    return {
+        "text": deterministic_failure_explanation(
+            evidence
+        ),
+        "source": RCA_SOURCE_FALLBACK,
+        "model": None,
+        "reason": reason,
+    }
+
+
+def explain_failure_with_source(
+    evidence: str,
+) -> dict:
+    """
+    Explain test failures and report WHERE the explanation came from.
+
+    Returns a dict:
+        text   - the explanation
+        source - "gemini" or "rule_based_fallback"
+        model  - Gemini model name when source is "gemini"
+        reason - why the fallback was used (empty for Gemini)
+
+    The report shows the source so a rule-based fallback is never
+    presented as an AI-generated root-cause analysis.
     """
 
     if not GEMINI_API_KEY:
-        return deterministic_failure_explanation(
-            evidence
+        return _fallback_explanation(
+            evidence,
+            "GEMINI_API_KEY is not configured",
         )
 
     try:
@@ -292,12 +318,45 @@ FAILURE EVIDENCE
             str(response),
         )
 
-        return str(content)
+        text = str(content).strip()
 
-    except Exception:
-        return deterministic_failure_explanation(
-            evidence
+        if not text:
+            return _fallback_explanation(
+                evidence,
+                "Gemini returned an empty response",
+            )
+
+        return {
+            "text": text,
+            "source": RCA_SOURCE_GEMINI,
+            "model": GEMINI_MODEL,
+            "reason": "",
+        }
+
+    except Exception as exc:
+        # Only the exception type is recorded, never its message,
+        # so provider error text cannot leak into the report.
+        return _fallback_explanation(
+            evidence,
+            f"Gemini call failed ({type(exc).__name__})",
         )
+
+
+def explain_failure_with_gemini(
+    evidence: str,
+) -> str:
+    """
+    Explain test failures using Gemini.
+
+    A deterministic fallback is returned if Gemini
+    is unavailable or rate-limited. Kept for backward
+    compatibility; use explain_failure_with_source()
+    when the explanation source must be shown.
+    """
+
+    return explain_failure_with_source(
+        evidence
+    )["text"]
 
 
 def deterministic_failure_explanation(
@@ -306,14 +365,16 @@ def deterministic_failure_explanation(
 
     text = evidence.lower()
 
-    if "404" in text:
+    # Same precedence as classify_failure(): 500 -> 422 -> 404.
+
+    if "500" in text:
         return (
-            "Failure category: Test-data/resource mismatch.\n"
-            "Likely root cause: The requested resource does "
-            "not exist in the in-memory application state.\n"
-            "Evidence: The execution output contains HTTP 404.\n"
-            "Recommended remediation: Seed the required "
-            "resource before state-dependent contract tests."
+            "Failure category: Server error.\n"
+            "Likely root cause: The API raised an unexpected "
+            "internal exception.\n"
+            "Evidence: The execution output contains HTTP 500.\n"
+            "Recommended remediation: Inspect application logs "
+            "and reproduce the failing request."
         )
 
     if "422" in text:
@@ -326,14 +387,14 @@ def deterministic_failure_explanation(
             "with the OpenAPI request schema."
         )
 
-    if "500" in text:
+    if "404" in text:
         return (
-            "Failure category: Server error.\n"
-            "Likely root cause: The API raised an unexpected "
-            "internal exception.\n"
-            "Evidence: The execution output contains HTTP 500.\n"
-            "Recommended remediation: Inspect application logs "
-            "and reproduce the failing request."
+            "Failure category: Test-data/resource mismatch.\n"
+            "Likely root cause: The requested resource does "
+            "not exist in the in-memory application state.\n"
+            "Evidence: The execution output contains HTTP 404.\n"
+            "Recommended remediation: Seed the required "
+            "resource before state-dependent contract tests."
         )
 
     return (
