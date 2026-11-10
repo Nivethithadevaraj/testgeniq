@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 
 from dotenv import load_dotenv
 
@@ -24,6 +25,53 @@ GROQ_MODEL = os.getenv(
     "GROQ_MODEL",
     "openai/gpt-oss-120b",
 )
+
+
+# ============================================================
+# MODEL RESPONSE TEXT
+# ============================================================
+
+def _content_to_text(
+    content,
+) -> str:
+    """
+    Return only the human-readable text of a model response.
+
+    Newer LangChain/Gemini versions return content as a list of
+    blocks, e.g. [{"type": "text", "text": "...", "extras":
+    {"signature": "..."}}]. Calling str() on that list leaks the
+    raw structure and long signature strings into reports and
+    prompts, so only the "text" parts are kept.
+    """
+
+    if content is None:
+        return ""
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, dict):
+        return str(content.get("text", ""))
+
+    if isinstance(content, (list, tuple)):
+        parts = []
+
+        for block in content:
+
+            if isinstance(block, str):
+                parts.append(block)
+
+            elif (
+                isinstance(block, dict)
+                and block.get("type", "text") == "text"
+            ):
+                parts.append(str(block.get("text", "")))
+
+        return "\n".join(
+            part for part in parts if part
+        )
+
+    return str(content)
 
 
 # ============================================================
@@ -87,7 +135,83 @@ model that will generate pytest code.
         str(response),
     )
 
-    return str(content)
+    return _content_to_text(content)
+
+
+# ============================================================
+# RATE-LIMIT RETRY
+# ============================================================
+
+RATE_LIMIT_RETRIES = 2
+RATE_LIMIT_MAX_WAIT_SECONDS = 60
+
+
+def _is_rate_limit_error(
+    exc: Exception,
+) -> bool:
+
+    text = str(exc).lower()
+
+    return (
+        "429" in text
+        or "rate limit" in text
+        or "rate_limit" in text
+        or type(exc).__name__ == "RateLimitError"
+    )
+
+
+def _retry_wait_seconds(
+    exc: Exception,
+) -> float:
+    """
+    Use the provider's own "try again in Xs" hint when present,
+    plus one second of margin. Capped so a run never hangs.
+    """
+
+    match = re.search(
+        r"try again in ([0-9]+(?:\.[0-9]+)?)s",
+        str(exc),
+        flags=re.IGNORECASE,
+    )
+
+    wait = float(match.group(1)) + 1 if match else 15.0
+
+    return min(wait, RATE_LIMIT_MAX_WAIT_SECONDS)
+
+
+def _invoke_with_rate_limit_retry(
+    model,
+    prompt: str,
+    sleep=time.sleep,
+):
+    """
+    Free-tier Groq allows a limited number of tokens per minute.
+    When the limit is hit, wait as long as the provider asks and
+    retry, instead of immediately falling back.
+    """
+
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+
+        try:
+            return model.invoke(prompt)
+
+        except Exception as exc:
+
+            if (
+                not _is_rate_limit_error(exc)
+                or attempt == RATE_LIMIT_RETRIES
+            ):
+                raise
+
+            wait = _retry_wait_seconds(exc)
+
+            print(
+                f"Rate limit reached; retrying in "
+                f"{wait:.0f}s (attempt {attempt + 2} of "
+                f"{RATE_LIMIT_RETRIES + 1})..."
+            )
+
+            sleep(wait)
 
 
 # ============================================================
@@ -115,7 +239,8 @@ def generate_with_groq(
         max_tokens=2500,
     )
 
-    response = model.invoke(
+    response = _invoke_with_rate_limit_retry(
+        model,
         f"""
 Generate executable pytest Python source for TestGenIQ.
 
@@ -143,7 +268,7 @@ RULES:
         str(response),
     )
 
-    return str(content)
+    return _content_to_text(content)
 # ============================================================
 # GENERATED CODE CLEANUP
 # ============================================================
@@ -318,7 +443,7 @@ FAILURE EVIDENCE
             str(response),
         )
 
-        text = str(content).strip()
+        text = _content_to_text(content).strip()
 
         if not text:
             return _fallback_explanation(
