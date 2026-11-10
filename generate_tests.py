@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -306,6 +308,36 @@ def validate_generated_test_code(
                             alias.name
                         )
 
+    # The app modules are only importable as app.<name> (pytest.ini sets
+    # pythonpath = .). A bare "from auth import ..." or "import auth"
+    # passes a syntax check but fails when pytest collects the file.
+    app_modules = {
+        path.stem
+        for path in (ROOT / "app").glob("*.py")
+        if path.stem != "__init__"
+    }
+
+    bare_imports = set()
+
+    for node in ast.walk(tree):
+
+        if isinstance(node, ast.ImportFrom):
+            top = (node.module or "").split(".")[0]
+            if node.level == 0 and top in app_modules:
+                bare_imports.add(node.module)
+
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.split(".")[0] in app_modules:
+                    bare_imports.add(alias.name)
+
+    if bare_imports:
+
+        problems.append(
+            "Generated tests import app modules without the app. "
+            f"package prefix: {sorted(bare_imports)}"
+        )
+
     invalid_imports = (
         imported_functions
         - actual_functions
@@ -343,6 +375,78 @@ def validate_generated_test_code(
         len(problems) == 0,
         problems,
     )
+
+
+# ============================================================
+# EXECUTION CHECK
+# ============================================================
+
+MAX_GENERATION_ATTEMPTS = 2
+EXECUTION_TIMEOUT_SECONDS = 180
+
+
+def run_generated_tests(
+    code: str,
+    module_name: str,
+) -> tuple[bool, str]:
+    """
+    Run AI-generated tests once before accepting them.
+
+    A static check cannot prove the tests pass. The candidate is
+    written to a temporary file inside tests/ (so conftest.py's
+    state-reset fixture applies), run with pytest against the real
+    source, and then deleted. The file name does not match
+    test_*.py, so a leftover file would never be collected by the
+    normal test run.
+    """
+
+    candidate = (
+        TESTS_DIR
+        / f"_candidate_{module_name}.py"
+    )
+
+    candidate.write_text(
+        code,
+        encoding="utf-8",
+    )
+
+    try:
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                str(candidate),
+                "-q",
+                "-p",
+                "no:cacheprovider",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=EXECUTION_TIMEOUT_SECONDS,
+        )
+
+    except subprocess.TimeoutExpired:
+        return False, "Generated tests timed out."
+
+    finally:
+        candidate.unlink(missing_ok=True)
+
+    output = (
+        (result.stdout or "") + (result.stderr or "")
+    ).strip()
+
+    summary = (
+        output.splitlines()[-1]
+        if output
+        else f"pytest exit code {result.returncode}"
+    )
+
+    return result.returncode == 0, summary
 
 
 # ============================================================
@@ -815,46 +919,68 @@ SOURCE / OPENAPI CONTEXT
 {context}
 """
 
-    try:
+    for attempt in range(1, MAX_GENERATION_ATTEMPTS + 1):
 
-        generated = generate_test_code(
-            prompt=prompt,
-            module_name=module_name,
-        )
-
-        generated = sanitize_generated_code(
-            generated
-        )
-
-        valid, problems = (
-            validate_generated_test_code(
-                generated,
-                source_file,
+        if attempt > 1:
+            print(
+                f"Retrying AI generation for {module_name} "
+                f"(attempt {attempt} of {MAX_GENERATION_ATTEMPTS})..."
             )
-        )
 
-        if valid:
+        try:
+
+            generated = generate_test_code(
+                prompt=prompt,
+                module_name=module_name,
+            )
+
+            generated = sanitize_generated_code(
+                generated
+            )
+
+            valid, problems = (
+                validate_generated_test_code(
+                    generated,
+                    source_file,
+                )
+            )
+
+            if not valid:
+
+                print(
+                    f"AI output rejected for {module_name}:"
+                )
+
+                for problem in problems:
+                    print(f"  - {problem}")
+
+                continue
+
+            passed, summary = run_generated_tests(
+                generated,
+                module_name,
+            )
+
+            if passed:
+
+                print(
+                    f"AI-generated tests validated for "
+                    f"{module_name} (executed: {summary})"
+                )
+
+                return generated, True
 
             print(
-                f"AI-generated tests validated for "
-                f"{module_name}"
+                f"AI tests for {module_name} failed when "
+                f"executed: {summary}"
             )
 
-            return generated, True
+        except Exception as exc:
 
-        print(
-            f"AI output rejected for {module_name}:"
-        )
-
-        for problem in problems:
-            print(f"  - {problem}")
-
-    except Exception as exc:
-
-        print(
-            f"AI generation failed for "
-            f"{module_name}: {exc}"
-        )
+            print(
+                f"AI generation failed for "
+                f"{module_name}: {exc}"
+            )
 
     print(
         f"Using deterministic source-safe fallback "
